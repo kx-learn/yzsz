@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "lib": ["esnext", "dom"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "jsx": "preserve",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["@dcloudio/types"]
+  },
+  "include": [
+    "**/*.js",
+    "**/*.vue",
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "unpackage",
+    "dist"
+  ],
+  "vueCompilerOptions": {
+    "experimentalCompatMode": 2,
+    "experimentalTemplateCompilerOptions": {
+      "isCustomElement": (tag) => tag.startsWith("uni-") || tag.startsWith("u-")
+    },
+    "globalTypesPath": "./node_modules/@dcloudio/types/global.d.ts"
+  }
+}
+

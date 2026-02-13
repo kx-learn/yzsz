@@ -1,0 +1,1150 @@
+{
+  "total": 93,
+  "modules": 13,
+  "apis": [
+    {
+      "method": "GET",
+      "path": "/",
+      "description": "系统状态",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/init",
+      "description": "初始化数据库",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/init-data",
+      "description": "创建测试数据",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users",
+      "description": "创建用户",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/{user_id}",
+      "description": "查询用户信息",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/set-referrer",
+      "description": "设置推荐人",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/{user_id}/referrer",
+      "description": "查询推荐人",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/{user_id}/team",
+      "description": "查询团队下线",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders",
+      "description": "订单结算",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/refund",
+      "description": "订单退款",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/use-coupon",
+      "description": "使用优惠券",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/submit-test-order",
+      "description": "提交测试订单",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/subsidy/distribute",
+      "description": "发放周补贴",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/subsidy/fund",
+      "description": "预存补贴资金",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public-welfare",
+      "description": "查询公益基金余额",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public-welfare/flow",
+      "description": "公益基金流水明细",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/reports/public-welfare",
+      "description": "公益基金交易报表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/withdrawals",
+      "description": "申请提现",
+      "type": "post"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/withdrawals/audit",
+      "description": "审核提现",
+      "type": "patch"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rewards/audit",
+      "description": "批量审核奖励",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rewards/pending",
+      "description": "查询奖励列表",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/coupons/{user_id}",
+      "description": "查询用户优惠券",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/finance",
+      "description": "财务总览报告",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/account-flow",
+      "description": "资金流水报告",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/points-flow",
+      "description": "积分流水报告",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/reports/points-deduction",
+      "description": "积分抵扣明细报表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/directors/check-promotion",
+      "description": "执行荣誉董事晋升",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/reports/transaction-chain",
+      "description": "交易推荐链报表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/test-reward-chain",
+      "description": "测试层级返利",
+      "type": "post"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/cleanup",
+      "description": "清理测试数据",
+      "type": "delete"
+    },
+    {
+      "method": "POST",
+      "path": "/user/set-status",
+      "description": "冻结/注销/恢复正常",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/user/auth",
+      "description": "一键登录（不存在则自动注册）",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/user/update-profile",
+      "description": "修改资料（昵称/头像/密码）",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/user/self-delete",
+      "description": "用户自助注销账号",
+      "type": "post"
+    },
+    {
+      "method": "PUT",
+      "path": "/user/freeze",
+      "description": "后台冻结用户",
+      "type": "put"
+    },
+    {
+      "method": "PUT",
+      "path": "/user/unfreeze",
+      "description": "后台解冻用户",
+      "type": "put"
+    },
+    {
+      "method": "POST",
+      "path": "/user/reset-password",
+      "description": "找回密码（短信验证）",
+      "type": "post"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/user/reset-pwd",
+      "description": "后台重置用户密码",
+      "type": "put"
+    },
+    {
+      "method": "POST",
+      "path": "/user/upgrade",
+      "description": "升 1 星",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/user/set-level",
+      "description": "后台调星",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/user/info",
+      "description": "用户详情（个人中心）",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/user/list",
+      "description": "分页列表+筛选",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/user/bind-referrer",
+      "description": "绑定推荐人",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/user/refer-direct",
+      "description": "直推列表",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/user/refer-team",
+      "description": "团队列表（递归）",
+      "type": "get"
+    },
+    {
+      "method": "PUT",
+      "path": "/address/default",
+      "description": "把已有地址设为默认",
+      "type": "put"
+    },
+    {
+      "method": "GET",
+      "path": "/address/list",
+      "description": "地址列表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/address/return",
+      "description": "商家设置退货地址",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/address/return",
+      "description": "查看退货地址",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/points",
+      "description": "增减积分",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/points/balance",
+      "description": "积分余额",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/points/log",
+      "description": "积分流水",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/reward/list",
+      "description": "我的团队奖励",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/reward/by-order/{order_id}",
+      "description": "按订单查看奖励",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/director/try-promote",
+      "description": "晋升荣誉董事",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/director/is",
+      "description": "是否荣誉董事",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/director/dividend",
+      "description": "分红明细",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/director/list",
+      "description": "所有活跃董事",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/director/calc-week",
+      "description": "手动触发周分红（仅内部）",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/audit",
+      "description": "等级变动审计",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/user/grant-merchant",
+      "description": "后台赋予商户身份",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/user/is-merchant",
+      "description": "查询是否商户",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/user/wechat-login",
+      "description": "微信小程序登录",
+      "type": "post"
+    },
+    {
+      "method": "DELETE",
+      "path": "/address/{addr_id}",
+      "description": "删除收货地址",
+      "type": "delete"
+    },
+    {
+      "method": "GET",
+      "path": "/cart/{user_id}",
+      "description": "获取购物车列表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/cart/add",
+      "description": "添加商品到购物车",
+      "type": "post"
+    },
+    {
+      "method": "DELETE",
+      "path": "/cart/{user_id}/{product_id}",
+      "description": "从购物车移除商品",
+      "type": "delete"
+    },
+    {
+      "method": "POST",
+      "path": "/order/create",
+      "description": "创建订单",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/order/pay",
+      "description": "订单支付",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/order/{user_id}",
+      "description": "查询用户订单列表",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/order/detail/{order_number}",
+      "description": "查询订单详情",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/order/status",
+      "description": "更新订单状态",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/refund/apply",
+      "description": "申请退款",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/refund/audit",
+      "description": "审核退款申请",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/refund/progress/{order_number}",
+      "description": "查询退款进度",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/address/add",
+      "description": "新增收货地址",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/address/{user_id}",
+      "description": "查询用户地址列表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/address/set_default",
+      "description": "设置默认地址",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/merchant/orders",
+      "description": "查询订单列表",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/merchant/ship",
+      "description": "订单发货",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/merchant/approve_refund",
+      "description": "审核退款申请",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/merchant/balance",
+      "description": "查询账户余额",
+      "type": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/merchant/bind_bank",
+      "description": "绑定银行卡",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/merchant/withdraw",
+      "description": "申请提现",
+      "type": "post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/products",
+      "description": "➕ 新增商品",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products",
+      "description": "📄 商品列表分页",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products/search",
+      "description": "🔍 商品模糊搜索",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products/{id}",
+      "description": "📦 查询单个商品",
+      "type": "get"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/products/{id}",
+      "description": "✏️ 更新商品",
+      "type": "put"
+    },
+    {
+      "method": "POST",
+      "path": "/api/products/{id}/images",
+      "description": "📸 上传商品图片",
+      "type": "post"
+    },
+    {
+      "method": "GET",
+      "path": "/api/banners",
+      "description": "🖼️ 轮播图列表",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products/{id}/sales",
+      "description": "📊 商品销售数据",
+      "type": "get"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products/{id}/rules",
+      "description": "📋 商品购买规则",
+      "type": "get"
+    }
+  ],
+  "grouped": {
+    "root": [
+      {
+        "method": "GET",
+        "path": "/",
+        "description": "系统状态",
+        "type": "get"
+      }
+    ],
+    "api": [
+      {
+        "method": "GET",
+        "path": "/api/admin/reports/points-deduction",
+        "description": "积分抵扣明细报表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/reports/public-welfare",
+        "description": "公益基金交易报表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/reports/transaction-chain",
+        "description": "交易推荐链报表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/banners",
+        "description": "🖼️ 轮播图列表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/coupons/{user_id}",
+        "description": "查询用户优惠券",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/products",
+        "description": "📄 商品列表分页",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/products/search",
+        "description": "🔍 商品模糊搜索",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/products/{id}",
+        "description": "📦 查询单个商品",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/products/{id}/rules",
+        "description": "📋 商品购买规则",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/products/{id}/sales",
+        "description": "📊 商品销售数据",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/public-welfare",
+        "description": "查询公益基金余额",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/public-welfare/flow",
+        "description": "公益基金流水明细",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/reports/account-flow",
+        "description": "资金流水报告",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/reports/finance",
+        "description": "财务总览报告",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/reports/points-flow",
+        "description": "积分流水报告",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/rewards/pending",
+        "description": "查询奖励列表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/users/{user_id}",
+        "description": "查询用户信息",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/users/{user_id}/referrer",
+        "description": "查询推荐人",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/api/users/{user_id}/team",
+        "description": "查询团队下线",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/api/directors/check-promotion",
+        "description": "执行荣誉董事晋升",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/init",
+        "description": "初始化数据库",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/init-data",
+        "description": "创建测试数据",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/orders",
+        "description": "订单结算",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/orders/refund",
+        "description": "订单退款",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/orders/test-reward-chain",
+        "description": "测试层级返利",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/orders/use-coupon",
+        "description": "使用优惠券",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/products",
+        "description": "➕ 新增商品",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/products/{id}/images",
+        "description": "📸 上传商品图片",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/rewards/audit",
+        "description": "批量审核奖励",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/submit-test-order",
+        "description": "提交测试订单",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/subsidy/distribute",
+        "description": "发放周补贴",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/subsidy/fund",
+        "description": "预存补贴资金",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/users",
+        "description": "创建用户",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/users/set-referrer",
+        "description": "设置推荐人",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/api/withdrawals",
+        "description": "申请提现",
+        "type": "post"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/products/{id}",
+        "description": "✏️ 更新商品",
+        "type": "put"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/cleanup",
+        "description": "清理测试数据",
+        "type": "delete"
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/withdrawals/audit",
+        "description": "审核提现",
+        "type": "patch"
+      }
+    ],
+    "user": [
+      {
+        "method": "GET",
+        "path": "/user/info",
+        "description": "用户详情（个人中心）",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/user/is-merchant",
+        "description": "查询是否商户",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/user/list",
+        "description": "分页列表+筛选",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/user/refer-direct",
+        "description": "直推列表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/user/refer-team",
+        "description": "团队列表（递归）",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/user/auth",
+        "description": "一键登录（不存在则自动注册）",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/bind-referrer",
+        "description": "绑定推荐人",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/grant-merchant",
+        "description": "后台赋予商户身份",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/reset-password",
+        "description": "找回密码（短信验证）",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/self-delete",
+        "description": "用户自助注销账号",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/set-level",
+        "description": "后台调星",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/set-status",
+        "description": "冻结/注销/恢复正常",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/update-profile",
+        "description": "修改资料（昵称/头像/密码）",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/upgrade",
+        "description": "升 1 星",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/user/wechat-login",
+        "description": "微信小程序登录",
+        "type": "post"
+      },
+      {
+        "method": "PUT",
+        "path": "/user/freeze",
+        "description": "后台冻结用户",
+        "type": "put"
+      },
+      {
+        "method": "PUT",
+        "path": "/user/unfreeze",
+        "description": "后台解冻用户",
+        "type": "put"
+      }
+    ],
+    "admin": [
+      {
+        "method": "PUT",
+        "path": "/admin/user/reset-pwd",
+        "description": "后台重置用户密码",
+        "type": "put"
+      }
+    ],
+    "address": [
+      {
+        "method": "GET",
+        "path": "/address/list",
+        "description": "地址列表",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/address/return",
+        "description": "查看退货地址",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/address/{user_id}",
+        "description": "查询用户地址列表",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/address/add",
+        "description": "新增收货地址",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/address/return",
+        "description": "商家设置退货地址",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/address/set_default",
+        "description": "设置默认地址",
+        "type": "post"
+      },
+      {
+        "method": "PUT",
+        "path": "/address/default",
+        "description": "把已有地址设为默认",
+        "type": "put"
+      },
+      {
+        "method": "DELETE",
+        "path": "/address/{addr_id}",
+        "description": "删除收货地址",
+        "type": "delete"
+      }
+    ],
+    "points": [
+      {
+        "method": "GET",
+        "path": "/points/balance",
+        "description": "积分余额",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/points/log",
+        "description": "积分流水",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/points",
+        "description": "增减积分",
+        "type": "post"
+      }
+    ],
+    "reward": [
+      {
+        "method": "GET",
+        "path": "/reward/by-order/{order_id}",
+        "description": "按订单查看奖励",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/reward/list",
+        "description": "我的团队奖励",
+        "type": "get"
+      }
+    ],
+    "director": [
+      {
+        "method": "GET",
+        "path": "/director/dividend",
+        "description": "分红明细",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/director/is",
+        "description": "是否荣誉董事",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/director/list",
+        "description": "所有活跃董事",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/director/calc-week",
+        "description": "手动触发周分红（仅内部）",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/director/try-promote",
+        "description": "晋升荣誉董事",
+        "type": "post"
+      }
+    ],
+    "audit": [
+      {
+        "method": "GET",
+        "path": "/audit",
+        "description": "等级变动审计",
+        "type": "get"
+      }
+    ],
+    "cart": [
+      {
+        "method": "GET",
+        "path": "/cart/{user_id}",
+        "description": "获取购物车列表",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/cart/add",
+        "description": "添加商品到购物车",
+        "type": "post"
+      },
+      {
+        "method": "DELETE",
+        "path": "/cart/{user_id}/{product_id}",
+        "description": "从购物车移除商品",
+        "type": "delete"
+      }
+    ],
+    "order": [
+      {
+        "method": "GET",
+        "path": "/order/detail/{order_number}",
+        "description": "查询订单详情",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/order/{user_id}",
+        "description": "查询用户订单列表",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/order/create",
+        "description": "创建订单",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/order/pay",
+        "description": "订单支付",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/order/status",
+        "description": "更新订单状态",
+        "type": "post"
+      }
+    ],
+    "refund": [
+      {
+        "method": "GET",
+        "path": "/refund/progress/{order_number}",
+        "description": "查询退款进度",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/refund/apply",
+        "description": "申请退款",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/refund/audit",
+        "description": "审核退款申请",
+        "type": "post"
+      }
+    ],
+    "merchant": [
+      {
+        "method": "GET",
+        "path": "/merchant/balance",
+        "description": "查询账户余额",
+        "type": "get"
+      },
+      {
+        "method": "GET",
+        "path": "/merchant/orders",
+        "description": "查询订单列表",
+        "type": "get"
+      },
+      {
+        "method": "POST",
+        "path": "/merchant/approve_refund",
+        "description": "审核退款申请",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/merchant/bind_bank",
+        "description": "绑定银行卡",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/merchant/ship",
+        "description": "订单发货",
+        "type": "post"
+      },
+      {
+        "method": "POST",
+        "path": "/merchant/withdraw",
+        "description": "申请提现",
+        "type": "post"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "usingComponents": {
+    "member-recursive-item": "../../components/member-recursive-item",
+    "member-recursive-item-placeholder": "../../components/member-recursive-item-placeholder",
+    "tree-member-item": "../../components/tree-member-item/tree-member-item",
+    "tree-member-item-placeholder": "../../components/tree-member-item/placeholder",
+    "MemberItemNode": "../../components/member-item-node",
+    "member-item-node-placeholder": "../../components/member-item-node-placeholder"
+  },
+  "componentPlaceholder": {
+    "member-recursive-item": "member-recursive-item-placeholder",
+    "tree-member-item": "tree-member-item-placeholder",
+    "MemberItemNode": "member-item-node-placeholder"
+  }
+}

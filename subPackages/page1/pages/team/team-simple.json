@@ -1,0 +1,9 @@
+{
+  "usingComponents": {
+    "MemberItemNode": "../../../../components/member-item-node",
+    "member-item-node-placeholder": "../../../../components/member-item-node-placeholder"
+  },
+  "componentPlaceholder": {
+    "MemberItemNode": "member-item-node-placeholder"
+  }
+}

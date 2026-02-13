@@ -1,0 +1,101 @@
+{
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": false,
+    "enhance": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useCompilerPlugins": false,
+    "minifyWXML": true,
+    "urlCheck": false,
+    "compileWorklet": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
+  },
+  "compileType": "miniprogram",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": [
+      {
+        "value": "project.private.config.json",
+        "type": "file"
+      },
+      {
+        "value": "static/999/iconfont.json",
+        "type": "file"
+      },
+      {
+        "value": "utils/wechat-auth.js",
+        "type": "file"
+      },
+      {
+        "value": "static/999/iconfont.js",
+        "type": "file"
+      },
+      {
+        "value": "static/999/iconfont.css",
+        "type": "file"
+      },
+      {
+        "value": "static/999/iconfont.ttf",
+        "type": "file"
+      },
+      {
+        "value": "static/999/iconfont.woff",
+        "type": "file"
+      },
+      {
+        "value": "static/999/iconfont.woff2",
+        "type": "file"
+      },
+      {
+        "value": "api/payment.js",
+        "type": "file"
+      },
+      {
+        "value": "pages/home/home.wxml",
+        "type": "file"
+      },
+      {
+        "value": "pages/index/index.wxml",
+        "type": "file"
+      },
+      {
+        "value": "pages/user/user.wxml",
+        "type": "file"
+      },
+      {
+        "value": "static/tabbar/shouye.png",
+        "type": "file"
+      },
+      {
+        "value": "static/tabbar/tuandui.png",
+        "type": "file"
+      },
+      {
+        "value": "static/tabbar/tongzhi.png",
+        "type": "file"
+      },
+      {
+        "value": "static/tabbar/wode.png",
+        "type": "file"
+      }
+    ]
+  },
+  "appid": "wx0cf7c42d80b7fa17",
+  "editorSetting": {},
+  "libVersion": "3.14.0"
+}

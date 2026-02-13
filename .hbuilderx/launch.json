@@ -1,0 +1,20 @@
+{
+    "version" : "1.0",
+    "configurations" : [
+        {
+            "default" : {
+                "launchtype" : "local"
+            },
+            "h5" : {
+                "launchtype" : "local"
+            },
+            "mp-weixin" : {
+                "launchtype" : "local"
+            }
+        },
+        {
+            "openVueDevtools" : false,
+            "type" : "uni-app:miniProgram"
+        }
+    ]
+}

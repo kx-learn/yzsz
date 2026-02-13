@@ -1,0 +1,43 @@
+# 编译产物
+unpackage/
+dist/
+
+# 依赖
+node_modules/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 临时文件
+*.tmp
+*.temp
+
+# 大文件（超过100KB的图片不应提交）
+*.png
+*.jpg
+*.jpeg
+!static/logo.png
+!static/tabbar/*.png
+
+# Source Map
+*.map
+
+# 私有配置，包含密钥/凭证，避免提交
+/project.private.config.js
+/project.private.config.proxy.js
+/utils/project.private.config.js
+/utils/project.private.config.proxy.js
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local

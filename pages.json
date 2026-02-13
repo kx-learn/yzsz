@@ -1,0 +1,630 @@
+{
+	"pages": [
+		{
+			"path": "pages/home/home",
+			"style": {
+				"navigationBarTitleText": "首页"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "登录"
+			}
+		},
+		{
+			"path": "pages/user/user",
+			"style": {
+				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/team/team",
+			"style": {
+				"navigationBarTitleText": "我的团队"
+			}
+		},
+		{
+			"path": "pages/message/message",
+			"style": {
+				"navigationBarTitleText": "消息通知"
+			}
+		},
+		{
+			"path": "pages/store/detail",
+			"style": {
+				"navigationBarTitleText": "店铺详情"
+			}
+		},
+		{
+			"path": "pages/offline/pay",
+			"style": {
+				"navigationBarTitleText": "订单支付"
+			}
+		}
+	],
+	"subPackages": [
+		{
+			"root": "subPackages/page1",
+			"name": "分包A",
+			"pages": [
+				{
+					"path": "pages/team/member-list",
+					"style": {
+						"navigationBarTitleText": "会员列表"
+					}
+				},
+				{
+					"path": "pages/team/donate",
+					"style": {
+						"navigationBarTitleText": "捐赠"
+					}
+				},
+				{
+					"path": "pages/message/chat",
+					"style": {
+						"navigationBarTitleText": "聊天"
+					}
+				},
+				{
+					"path": "pages/message/category-list",
+					"style": {
+						"navigationBarTitleText": "消息列表"
+					}
+				},
+				{
+					"path": "pages/invite/invite",
+					"style": {
+						"navigationBarTitleText": "推荐好友"
+					}
+				},
+				{
+					"path": "pages/order/detail",
+					"style": {
+						"navigationBarTitleText": "订单详情"
+					}
+				},
+				{
+					"path": "pages/order/after-sale",
+					"style": {
+						"navigationBarTitleText": "申请售后"
+					}
+				},
+				{
+					"path": "pages/debug/balance-manager",
+					"style": {
+						"navigationBarTitleText": "余额管理"
+					}
+				},
+				{
+					"path": "pages/funds/allocation",
+					"style": {
+						"navigationBarTitleText": "资金分配"
+					}
+				},
+				{
+					"path": "pages/merchant/system-notice",
+					"style": {
+						"navigationBarTitleText": "系统通知"
+					}
+				},
+				{
+					"path": "pages/merchant/coupon-distribute",
+					"style": {
+						"navigationBarTitleText": "优惠券分发"
+					}
+				},
+				{
+					"path": "pages/merchant/products",
+					"style": {
+						"navigationBarTitleText": "商品管理"
+					}
+				},
+				{
+					"path": "pages/merchant/inventory",
+					"style": {
+						"navigationBarTitleText": "库存管理"
+					}
+				},
+				{
+					"path": "pages/merchant/staff",
+					"style": {
+						"navigationBarTitleText": "员工管理"
+					}
+				},
+				{
+					"path": "pages/merchant/store-list",
+					"style": {
+						"navigationBarTitleText": "店铺列表"
+					}
+				},
+				{
+					"path": "pages/merchant/fund-pool",
+					"style": {
+						"navigationBarTitleText": "资金池"
+					}
+				},
+				{
+					"path": "pages/merchant/distribution",
+					"style": {
+						"navigationBarTitleText": "分销管理"
+					}
+				},
+				{
+					"path": "pages/merchant/points-log",
+					"style": {
+						"navigationBarTitleText": "积分记录"
+					}
+				},
+				{
+					"path": "pages/merchant/dividend",
+					"style": {
+						"navigationBarTitleText": "分红管理"
+					}
+				},
+				{
+					"path": "pages/merchant/order-detail",
+					"style": {
+						"navigationBarTitleText": "订单详情"
+					}
+				},
+				{
+					"path": "pages/order/confirm",
+					"style": {
+						"navigationBarTitleText": "确认订单"
+					}
+				},
+				{
+					"path": "pages/payment/payment",
+					"style": {
+						"navigationBarTitleText": "支付"
+					}
+				},
+				{
+					"path": "pages/service/service",
+					"style": {
+						"navigationBarTitleText": "客服"
+					}
+				},
+				{
+					"path": "pages/evaluation/submit",
+					"style": {
+						"navigationBarTitleText": "提交评价"
+					}
+				},
+				{
+					"path": "pages/evaluation/list",
+					"style": {
+						"navigationBarTitleText": "评价列表"
+					}
+				},
+				{
+					"path": "pages/product/list",
+					"style": {
+						"navigationBarTitleText": "商品列表"
+					}
+				},
+				{
+					"path": "pages/merchant/product-add",
+					"style": {
+						"navigationBarTitleText": "添加商品"
+					}
+				},
+				{
+					"path": "pages/favorites/favorites",
+					"style": {
+						"navigationBarTitleText": "我的收藏"
+					}
+				},
+				{
+					"path": "pages/team/reward-history",
+					"style": {
+						"navigationBarTitleText": "奖励历史"
+					}
+				},
+				{
+					"path": "pages/agreement/user",
+					"style": {
+						"navigationBarTitleText": "用户协议"
+					}
+				},
+				{
+					"path": "pages/agreement/privacy",
+					"style": {
+						"navigationBarTitleText": "隐私政策"
+					}
+				}
+			]
+		},
+		{
+			"root": "subPackages/page2",
+			"name": "分包B",
+			"pages": [
+				{
+					"path": "pages/product/detail",
+					"style": {
+						"navigationBarTitleText": "商品详情"
+					}
+				},
+				{
+					"path": "pages/product/search",
+					"style": {
+						"navigationBarTitleText": "商品搜索"
+					}
+				},
+				{
+					"path": "pages/user/crop-avatar",
+					"style": {
+						"navigationBarTitleText": "裁剪头像"
+					}
+				},
+				{
+					"path": "pages/user/detail",
+					"style": {
+						"navigationBarTitleText": "用户详情"
+					}
+				},
+				{
+					"path": "pages/team/member-detail",
+					"style": {
+						"navigationBarTitleText": "会员详情"
+					}
+				},
+				{
+					"path": "pages/team/level-members",
+					"style": {
+						"navigationBarTitleText": "等级会员"
+					}
+				},
+				{
+					"path": "pages/reward/reward",
+					"style": {
+						"navigationBarTitleText": "奖励明细"
+					}
+				},
+				{
+					"path": "pages/message/detail",
+					"style": {
+						"navigationBarTitleText": "消息详情"
+					}
+				},
+				{
+					"path": "pages/withdraw/withdraw",
+					"style": {
+						"navigationBarTitleText": "提现中心"
+					}
+				},
+				{
+					"path": "pages/order/list",
+					"style": {
+						"navigationBarTitleText": "我的订单"
+					}
+				},
+				{
+					"path": "pages/setting/setting",
+					"style": {
+						"navigationBarTitleText": "设置"
+					}
+				},
+				{
+					"path": "pages/debug/network",
+					"style": {
+						"navigationBarTitleText": "网络诊断"
+					}
+				},
+				{
+					"path": "pages/debug/code-test",
+					"style": {
+						"navigationBarTitleText": "Code 获取测试"
+					}
+				},
+				{
+					"path": "pages/debug/login-debug",
+					"style": {
+						"navigationBarTitleText": "登录详细调试"
+					}
+				},
+				{
+					"path": "pages/debug/appid-explain",
+					"style": {
+						"navigationBarTitleText": "AppID 一致性说明"
+					}
+				},
+				{
+					"path": "pages/debug/icon-test",
+					"style": {
+						"navigationBarTitleText": "图标测试"
+					}
+				},
+				{
+					"path": "pages/debug/server-switch",
+					"style": {
+						"navigationBarTitleText": "服务器切换"
+					}
+				},
+				{
+					"path": "pages/points/balance",
+					"style": {
+						"navigationBarTitleText": "积分余额"
+					}
+				},
+				{
+					"path": "pages/points/log",
+					"style": {
+						"navigationBarTitleText": "积分记录"
+					}
+				},
+				{
+					"path": "pages/finance/flow",
+					"style": {
+						"navigationBarTitleText": "资金流水"
+					}
+				},
+				{
+					"path": "pages/finance/withdrawals",
+					"style": {
+						"navigationBarTitleText": "提现记录"
+					}
+				},
+				{
+					"path": "pages/subsidy/subsidy",
+					"style": {
+						"navigationBarTitleText": "周补贴"
+					}
+				},
+				{
+					"path": "pages/merchant/center",
+					"style": {
+						"navigationBarTitleText": "商家中心"
+					}
+				},
+				{
+					"path": "pages/merchant/certification",
+					"style": {
+						"navigationBarTitleText": "实名认证"
+					}
+				},
+
+				{
+					"path": "pages/merchant/bindcard",
+					"style": {
+						"navigationBarTitleText": "银行卡绑定"
+					}
+				},
+				{
+					"path": "pages/merchant/withdraw",
+					"style": {
+						"navigationBarTitleText": "提现"
+					}
+				},
+				{
+					"path": "pages/merchant/banner-manage",
+					"style": {
+						"navigationBarTitleText": "轮播图管理"
+					}
+				},
+				{
+					"path": "pages/merchant/notice-manage",
+					"style": {
+						"navigationBarTitleText": "通知管理"
+					}
+				},
+				{
+					"path": "pages/merchant/content-manage",
+					"style": {
+						"navigationBarTitleText": "内容管理"
+					}
+				},
+				{
+					"path": "pages/merchant/finance",
+					"style": {
+						"navigationBarTitleText": "财务管理"
+					}
+				},
+				{
+					"path": "pages/merchant/report-detail",
+					"style": {
+						"navigationBarTitleText": "报表详情"
+					}
+				},
+				{
+					"path": "pages/merchant/dividend-preview",
+					"style": {
+						"navigationBarTitleText": "分红预览"
+					}
+				},
+				{
+					"path": "pages/merchant/pool-flow",
+					"style": {
+						"navigationBarTitleText": "资金池流水"
+					}
+				},
+				{
+					"path": "pages/merchant/member-points-flow",
+					"style": {
+						"navigationBarTitleText": "会员积分流水"
+					}
+				},
+				{
+					"path": "pages/merchant/delivery-settings",
+					"style": {
+						"navigationBarTitleText": "配送设置"
+					}
+				},
+				{
+					"path": "pages/merchant/orders",
+					"style": {
+						"navigationBarTitleText": "订单管理"
+					}
+				},
+				{
+					"path": "pages/merchant/order-export",
+					"style": {
+						"navigationBarTitleText": "下载订单"
+					}
+				},
+				{
+					"path": "pages/merchant/user-manage",
+					"style": {
+						"navigationBarTitleText": "用户管理"
+					}
+				},
+				{
+					"path": "pages/merchant/merchant-info",
+					"style": {
+						"navigationBarTitleText": "商户号管理"
+					}
+				},
+				{
+					"path": "pages/merchant/sales",
+					"style": {
+						"navigationBarTitleText": "销售管理"
+					}
+				},
+				{
+					"path": "pages/shop/center",
+					"style": {
+						"navigationBarTitleText": "商家中心"
+					}
+				},
+				{
+					"path": "pages/shop/products",
+					"style": {
+						"navigationBarTitleText": "商品管理"
+					}
+				},
+				{
+					"path": "pages/shop/orders",
+					"style": {
+						"navigationBarTitleText": "订单管理"
+					}
+				},
+				{
+					"path": "pages/shop/inventory",
+					"style": {
+						"navigationBarTitleText": "库存管理"
+					}
+				},
+				{
+					"path": "pages/shop/settings",
+					"style": {
+						"navigationBarTitleText": "店铺设置"
+					}
+				},
+				{
+					"path": "pages/cart/cart",
+					"style": {
+						"navigationBarTitleText": "购物车"
+					}
+				},
+				{
+					"path": "pages/order/confirm-with-points",
+					"style": {
+						"navigationBarTitleText": "积分确认订单"
+					}
+				},
+				{
+					"path": "pages/merchant/marketing",
+					"style": {
+						"navigationBarTitleText": "营销管理"
+					}
+				},
+				{
+					"path": "pages/address/list",
+					"style": {
+						"navigationBarTitleText": "地址列表"
+					}
+				},
+				{
+					"path": "pages/address/edit",
+					"style": {
+						"navigationBarTitleText": "编辑地址"
+					}
+				},
+				{
+					"path": "pages/setting/edit-email",
+					"style": {
+						"navigationBarTitleText": "编辑邮箱"
+					}
+				},
+				{
+					"path": "pages/user/coupons",
+					"style": {
+						"navigationBarTitleText": "我的优惠券"
+					}
+				}
+				,
+				{
+					"path": "pages/merchant/create_payment",
+					"style": {
+						"navigationBarTitleText": "创建支付单"
+					}
+				},
+				{
+					"path": "pages/merchant/offline_cashier",
+					"style": {
+						"navigationBarTitleText": "线下收银"
+					}
+				}
+			]
+		}
+	],
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#3d6bff",
+		"backgroundColor": "#ffffff",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/home/home",
+				"text": "首页",
+				"iconPath": "/static/tabbar/shouye.png",
+				"selectedIconPath": "/static/tabbar/shouye.png"
+			},
+			{
+				"pagePath": "pages/team/team",
+				"text": "团队",
+				"iconPath": "/static/tabbar/tuandui.png",
+				"selectedIconPath": "/static/tabbar/tuandui.png"
+			},
+			{
+				"pagePath": "pages/message/message",
+				"text": "通知",
+				"iconPath": "/static/tabbar/tongzhi.png",
+				"selectedIconPath": "/static/tabbar/tongzhi.png"
+			},
+			{
+				"pagePath": "pages/user/user",
+				"text": "我的",
+				"iconPath": "/static/tabbar/wode.png",
+				"selectedIconPath": "/static/tabbar/wode.png"
+			}
+		]
+	},
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "会员商城",
+		"navigationBarBackgroundColor": "#FFFFFF",
+		"backgroundColor": "#F8F8F8"
+	},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			
+		}
+	},
+	"uniIdRouter": {},
+	"lazyCodeLoading": "requiredComponents",
+	"mp-weixin": {
+		"requiredPrivateInfos": [
+			"getLocation",
+			"chooseLocation",
+			"chooseAddress"
+		],
+		"permission": {
+			"scope.userLocation": {
+				"desc": "用于获取您的位置信息,自动填充收货地址"
+			}
+		}
+	}
+}

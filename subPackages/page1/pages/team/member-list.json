@@ -1,0 +1,9 @@
+{
+  "usingComponents": {
+    "member-recursive-item": "../../../components/member-recursive-item",
+    "member-recursive-item-placeholder": "../../../components/member-recursive-item-placeholder"
+  },
+  "componentPlaceholder": {
+    "member-recursive-item": "member-recursive-item-placeholder"
+  }
+}

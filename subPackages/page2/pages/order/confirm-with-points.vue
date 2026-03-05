@@ -710,6 +710,7 @@ const submitFreeOrder = async () => {
 		const orderRes = await createOrder(orderRequestData)
 		
 		const orderData = orderRes.data || orderRes
+		// 后端创建订单返回：{ order_number: 'xxx' }，不一定有 id
 		const apiOrderNo = orderData.orderNo || orderData.order_number || orderData.order_no
 		const apiOrderId = orderData.id || orderData.orderId || orderData.order_id
 		
@@ -749,25 +750,17 @@ const submitFreeOrder = async () => {
 		    }
 		}
 		
-		// 确保有订单ID
-		const finalOrderId = apiOrderId || orderData.id || orderData.order_id
-		
-		if (!finalOrderId) {
-		    console.error('[免费订单] 订单ID为空，响应数据:', orderData)
-		    uni.hideLoading()
-		    uni.showToast({ title: '订单创建成功但无法查看详情', icon: 'none' })
-		    setTimeout(() => {
-		        uni.switchTab({ url: '/pages/order/list' })
-		    }, 2000)
-		    return
-		}
+		// 统一订单号（必有其一）：优先使用后端返回的 order_number
+		const finalOrderNo = apiOrderNo || `FREE${Date.now()}`
+		// 对于免费订单，部分接口可能没有返回 id，这里用订单号兜底作为本地 ID
+		const finalOrderId = apiOrderId || orderData.id || orderData.order_id || finalOrderNo
 		
 		// ===== 所有数据操作必须在跳转前完成 =====
 		
-		// 1. 保存订单到本地存储
+		// 1. 保存订单到本地存储（本地 ID 使用 finalOrderId，订单号使用 finalOrderNo）
 		const newOrder = {
 			id: finalOrderId,
-			orderNo: apiOrderNo || 'FREE' + Date.now(),
+			orderNo: finalOrderNo,
 			status: 'paid',
 			totalAmount: originalAmount.value,
 			productTotal: productTotal.value,
@@ -829,10 +822,10 @@ const submitFreeOrder = async () => {
 		uni.hideLoading()
 		uni.showToast({ title: '领取成功', icon: 'success' })
 		
-		// 5. 只有一个跳转：跳转到订单详情页（带isFree标记）
+		// 5. 只有一个跳转：跳转到订单详情页（带 isFree 标记）
 		setTimeout(() => {
 			uni.redirectTo({
-				url: `/pages/order/detail?id=${finalOrderId}&isFree=true`
+				url: `/subPackages/page1/pages/order/detail?id=${finalOrderId}&orderNo=${encodeURIComponent(finalOrderNo)}&isFree=true`
 			})
 		}, 1500)
 		
@@ -844,9 +837,9 @@ const submitFreeOrder = async () => {
 			icon: 'none',
 			duration: 3000
 		})
-		// 错误时也可以跳转到订单列表
+		// 错误时也可以跳转到订单列表（分包路径）
 		setTimeout(() => {
-			uni.switchTab({ url: '/pages/order/list' })
+			uni.navigateTo({ url: '/subPackages/page2/pages/order/list' })
 		}, 2000)
 	}
 }

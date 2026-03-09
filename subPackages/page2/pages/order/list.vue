@@ -1123,15 +1123,20 @@ onShow(() => {
 				        uni.showToast({ title: '收货已同步', icon: 'success' })
 				        switchTab('completed')
 				        loadOrderList()
-				    }).catch((err) => {
-						console.warn('[订单列表] onShow 兜底确认收货失败', err)
-						const msg = err && (err.message || err.msg || err.errorMsg) || ''
-						const isUnknownState = /未知状态|None|未确认收货/i.test(msg)
-						if (isUnknownState && !isRetry) {
-							// 首次失败且为未知状态：自动 3 秒后再试一次，不再立即弹窗
-							setTimeout(() => doSync(true), 3000)
-							return
-						}
+				    })
+					.catch((err) => {
+					            console.warn('[订单列表] onShow 兜底确认收货失败', err)
+					            const msg = err && (err.message || err.msg || err.errorMsg) || ''
+					            
+					            // 新增：如果错误是 400 且订单已处于 completed 状态，视为同步成功
+					            const isAlreadyCompleted = err.statusCode === 400 && /已完成|completed/i.test(msg)
+					            if (isAlreadyCompleted) {
+					                console.log('[订单列表] 订单已处于完成状态，清除记录')
+					                uni.removeStorageSync('pending_confirm_receive')
+					                // 可选：刷新订单列表
+					                loadOrderList()
+					                return
+					            }
 						if (isUnknownState && isRetry) {
 							uni.showModal({
 								title: '状态同步中',

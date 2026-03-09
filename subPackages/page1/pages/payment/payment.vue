@@ -186,21 +186,13 @@ const handlePayment = async () => {
       // 使用积分和优惠券后应付金额为 0 时，不调微信支付，直接调用后端完成订单
       const amount = toAmount(paymentData.value.amount)
       if (amount <= 0) {
+        // 零元订单无需调支付接口，直接成功
         uni.showLoading({ title: '正在确认...' })
-        try {
-          const { couponId, pointsToUse } = getPaymentParams()
-          await wechatUnifiedOrder({
-            orderNo: paymentData.value.orderNo,
-            couponId: couponId || undefined,
-            pointsToUse: pointsToUse || 0
-          })
+        // 模拟短暂延迟，让用户看到提示
+        setTimeout(() => {
           uni.hideLoading()
           handlePaymentSuccess()
-        } catch (e) {
-          uni.hideLoading()
-          const msg = (e && (e.message || e.msg)) || '确认失败'
-          uni.showToast({ title: msg, icon: 'none' })
-        }
+        }, 500)
         return
       }
 

@@ -39,10 +39,10 @@
             <text class="action-label">积分值</text>
             <view class="input-wrapper">
               <input 
-                v-model.number="pointsValueInput" 
-                type="digit"
+                v-model="pointsValueInput" 
+                type="number"
                 class="value-input"
-                placeholder="0.0000"
+                placeholder="0.00"
                 :maxlength="6"
               />
               <text class="input-unit">%</text>
@@ -61,7 +61,7 @@
         </view>
         
         <view class="info-tip">
-          <text class="tip-text">积分值=补贴池余额÷系统总积分，每周最高不超过2%</text>
+          <text class="tip-text">积分值=补贴池余额*0.05÷系统总积分，每日最高不超过0.5%</text>
         </view>
       </view>
     </view>

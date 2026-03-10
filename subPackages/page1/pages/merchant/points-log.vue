@@ -498,25 +498,27 @@ onShow(() => {
 .log-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 24rpx;
   background: #f8f9fa;
   border-radius: 12rpx;
-  gap: 20rpx; /* 添加间距 */
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .log-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 20rpx;
   flex: 1;
-  min-width: 0; /* 关键：允许flex子项收缩 */
-  overflow: hidden; /* 防止内容溢出 */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .log-icon {
   font-size: 36rpx;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .log-info {
@@ -524,8 +526,8 @@ onShow(() => {
   flex-direction: column;
   gap: 8rpx;
   flex: 1;
-  min-width: 0; /* 关键：允许flex子项收缩 */
-  overflow: hidden; /* 防止内容溢出 */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .log-reason {
@@ -534,17 +536,16 @@ onShow(() => {
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
 }
 
 .log-time {
   font-size: 24rpx;
   color: #999;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .log-order {
@@ -553,18 +554,17 @@ onShow(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
 }
 
 .log-right {
   flex-shrink: 0;
-  min-width: fit-content; /* 根据内容自适应宽度 */
+  margin-left: 16rpx;
 }
 
 .log-amount {
   font-size: 32rpx;
   font-weight: bold;
-  white-space: nowrap; /* 防止金额换行 */
+  white-space: nowrap;
 }
 
 .log-amount.income {

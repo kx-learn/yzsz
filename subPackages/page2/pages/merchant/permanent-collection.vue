@@ -212,10 +212,6 @@ async function loadQrcode() {
   qrcodeB64.value = ''
   try {
     const res = await getPermanentCollectionQrcode(merchantId.value)
-    // 打印后端返回的原始数据
-    console.log('[永久收款码] 后端返回的原始数据:', res)
-    console.log('[永久收款码] 后端数据类型:', typeof res)
-    console.log('[永久收款码] 完整的返回对象:', JSON.stringify(res, null, 2))
     const raw = normalizeQrcodeResponse(res)
     if (!raw) {
       errorMsg.value = '接口未返回收款码数据'

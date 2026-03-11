@@ -99,13 +99,18 @@
     </form>
 
     <!-- 地区选择弹窗（跨平台统一样式，点击依次选择省/市/区） -->
-    <view v-if="showRegionPopup" class="region-popup-mask" @click="closeRegionPopup">
+    <view
+      v-if="showRegionPopup"
+      class="region-popup-mask"
+      @click="closeRegionPopup"
+      catchtouchmove="true"
+    >
       <view class="region-popup" @click.stop>
         <view class="popup-header">
           <text class="popup-title">选择地区</text>
           <text class="popup-close" @click="closeRegionPopup">×</text>
         </view>
-        <view class="popup-content">
+        <scroll-view class="popup-content" scroll-y="true">
           <!-- stage 1: 省份列表 -->
           <view v-if="popupStage === 1" class="select-list">
             <view
@@ -133,17 +138,17 @@
           <view v-if="popupStage === 3" class="select-list">
             <view class="back-button" @click="popupStage = 2">‹ 城市</view>
             <view
-              v-for="dist in districtsList"
-              :key="dist.code"
-              class="select-item"
-              @click="selectDistrict(dist)"
-            >
+                v-for="dist in districtsList"
+                :key="dist.code"
+                class="select-item"
+                @click="selectDistrict(dist)"
+              >
               {{ dist.name }}
             </view>
-        </view>
+          </view>
+        </scroll-view>
       </view>
     </view>
-  </view>
   </view>
 </template>
 

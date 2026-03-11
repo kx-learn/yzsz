@@ -15,18 +15,32 @@ export const getTransformLogs = (params) => {
 }
 
 /**
+ * 查询资金池分配配置（包含余额 balance）
+ * @returns {Promise}
+ */
+export const getFundPoolAllocations = () => {
+  return request.get('/api/fund-pools/allocations')
+}
+
+/**
  * 资金池转正：转化为优惠券
  * 接口要求参数为 query：pool_type, user_id, amount, coupon_type, applicable_product_type, remark
  */
 export const transformToCoupon = (params) => {
-  const q = new URLSearchParams()
-  if (params.pool_type != null) q.set('pool_type', String(params.pool_type))
-  if (params.user_id != null) q.set('user_id', String(params.user_id))
-  if (params.amount != null) q.set('amount', String(params.amount))
-  if (params.coupon_type != null) q.set('coupon_type', String(params.coupon_type))
-  if (params.applicable_product_type != null) q.set('applicable_product_type', String(params.applicable_product_type))
-  if (params.remark != null && params.remark !== '') q.set('remark', String(params.remark))
-  const query = q.toString()
-  const url = '/api/fund-pools/transform-to-coupon' + (query ? '?' + query : '')
+  const pairs = []
+  const add = (k, v) => {
+    if (v == null) return
+    const s = String(v)
+    if (!s) return
+    pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(s)}`)
+  }
+  add('pool_type', params.pool_type)
+  add('user_id', params.user_id)
+  add('amount', params.amount)
+  add('coupon_type', params.coupon_type)
+  add('applicable_product_type', params.applicable_product_type)
+  if (params.remark != null && params.remark !== '') add('remark', params.remark)
+  const query = pairs.join('&')
+  const url = '/api/fund-pools/transform-to-coupon' + (query ? `?${query}` : '')
   return request.post(url, {})
 }

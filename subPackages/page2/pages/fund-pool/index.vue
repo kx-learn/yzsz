@@ -25,6 +25,7 @@
           </view>
         </picker>
         <text v-if="!loading && fundList.length === 0" class="picker-hint">暂无资金池数据，请检查接口或稍后重试</text>
+        <text v-else class="pool-balance">{{ selectedPoolBalanceText }}</text>
       </view>
       <view class="form-row">
         <text class="form-label">接收用户ID</text>
@@ -86,86 +87,6 @@
       </button>
     </view>
 
-    <!-- 资金列表 -->
-    <view class="fund-list">
-      <view 
-        v-for="item in fundList" 
-        :key="item.type"
-        class="fund-card"
-      >
-        <view class="fund-header">
-          <text class="fund-name">{{ item.name }}</text>
-          <text class="fund-amount">¥{{ formatAmount(item.balance) }}</text>
-        </view>
-        
-        <view class="fund-info">
-          <text class="fund-desc">{{ item.description }}</text>
-        </view>
-
-        <button 
-          class="transform-btn"
-          :disabled="item.balance <= 0 || transforming === item.type"
-          @tap="openTransformModal(item)"
-        >
-          {{ transforming === item.type ? '处理中...' : '转为优惠券' }}
-        </button>
-      </view>
-    </view>
-
-    <!-- 空状态 -->
-    <view v-if="fundList.length === 0 && !loading" class="empty-state">
-      <text class="empty-icon iconfont icon-qianbao"></text>
-      <text class="empty-text">暂无可用资金</text>
-    </view>
-
-    <!-- 转化弹窗 -->
-    <view v-if="showModal" class="modal-mask" @tap="closeModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-header">
-          <text class="modal-title">转化为优惠券</text>
-          <text class="modal-close" @tap="closeModal">×</text>
-        </view>
-
-        <view class="modal-body">
-          <view class="selected-fund">
-            <text class="label">{{ selectedFund.name }}</text>
-            <text class="value">可用余额：¥{{ formatAmount(selectedFund.balance) }}</text>
-          </view>
-
-          <view class="input-section">
-            <text class="input-label">转化金额</text>
-            <view class="amount-input-wrap">
-              <text class="currency">¥</text>
-              <input 
-                class="amount-input"
-                type="digit"
-                v-model="transformAmount"
-                placeholder="请输入金额"
-                :max="selectedFund.balance"
-              />
-            </view>
-            <text class="input-hint">最大可转：¥{{ formatAmount(selectedFund.balance) }}</text>
-          </view>
-
-          <view class="coupon-preview" v-if="transformAmount > 0">
-            <text class="preview-title">预计生成</text>
-            <view class="coupon-info">
-              <text class="coupon-value">¥{{ formatAmount(transformAmount) }}</text>
-              <text class="coupon-desc">全场通用优惠券</text>
-            </view>
-          </view>
-        </view>
-
-        <button 
-          class="confirm-btn"
-          :disabled="!canTransform || transforming"
-          @tap="confirmTransform"
-        >
-          {{ transforming ? '处理中...' : '确认转化' }}
-        </button>
-      </view>
-    </view>
-
     <!-- 转化记录入口 -->
     <view class="records-entry" @tap="goToRecords">
       <text class="records-text">查看转化记录</text>
@@ -177,7 +98,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getTransformAllowed, transformToCoupon } from '@/api/fund-pool.js'
+import { getTransformAllowed, getFundPoolAllocations, transformToCoupon } from '@/api/fund-pool.js'
 
 const fundList = ref([])
 const loading = ref(false)
@@ -236,6 +157,15 @@ const poolDisplayText = computed(() => {
   if (opts.length === 0) return '请选择资金池'
   if (opts[idx]) return opts[idx].name
   return opts[0].name
+})
+const selectedPoolBalanceText = computed(() => {
+  const opts = poolOptionsForPicker.value
+  const idx = transformPoolIndex.value
+  const pool = opts && opts[idx] ? opts[idx] : null
+  const name = (pool && pool.name) ? String(pool.name) : ''
+  const raw = pool ? (pool.balance ?? pool.available ?? pool.amount ?? pool.total_amount ?? pool.total ?? 0) : 0
+  const n = Number(raw || 0)
+  return `${name || '当前'}池可用资金：¥${formatAmount(isNaN(n) ? 0 : n)}`
 })
 
 // 表单提交：资金池、用户ID、金额必填
@@ -300,25 +230,41 @@ const submitTransform = async () => {
 const loadFundList = async () => {
   loading.value = true
   try {
-    const res = await getTransformAllowed()
+    const [allowedRes, allocRes] = await Promise.all([
+      getTransformAllowed(),
+      getFundPoolAllocations().catch(() => null)
+    ])
     // 打印后端接口返回的完整数据
-    console.log('[我的资金] getTransformAllowed 接口完整响应:', JSON.stringify(res, null, 2))
-    console.log('[我的资金] res.data:', res?.data)
-    console.log('[我的资金] res.success:', res?.success)
-    console.log('[我的资金] res.message:', res?.message)
-    let raw = res.data != null ? res.data : res
+    console.log('[我的资金] getTransformAllowed 接口完整响应:', JSON.stringify(allowedRes, null, 2))
+    console.log('[我的资金] allowedRes.data:', allowedRes?.data)
+    console.log('[我的资金] allowedRes.success:', allowedRes?.success)
+    console.log('[我的资金] allowedRes.message:', allowedRes?.message)
+    console.log('[我的资金] getFundPoolAllocations 响应:', allocRes ? JSON.stringify(allocRes, null, 2) : '(skip)')
+    let raw = allowedRes.data != null ? allowedRes.data : allowedRes
     if (!Array.isArray(raw)) {
-      raw = typeof raw === 'object' ? Object.keys(raw).map(key => ({ type: key, ...(raw[key] || {}) })) : []
+      if (raw && typeof raw === 'object' && Array.isArray(raw.pools)) {
+        raw = raw.pools
+      } else if (raw && typeof raw === 'object') {
+        raw = Object.keys(raw)
+          .filter((key) => key !== 'pools')
+          .map(key => ({ type: key, ...(raw[key] || {}) }))
+      } else {
+        raw = []
+      }
     }
     console.log('[我的资金] 解析后的资金池列表 raw:', JSON.stringify(raw, null, 2))
+    const allocData = allocRes && (allocRes.data != null ? allocRes.data : allocRes)
     fundList.value = raw.map(item => {
       const type = item.type || item.pool_type || item.key
+      const allocItem = allocData && type && typeof allocData === 'object' ? (allocData[type] || null) : null
+      const balance = allocItem && typeof allocItem === 'object' && allocItem.balance !== undefined ? allocItem.balance : item.balance
       return {
         ...item,
         type,
         pool_type: type,
-        name: getFundName(type),
-        description: getFundDesc(type)
+        name: item.name || getFundName(type),
+        description: item.description || item.desc || getFundDesc(type),
+        balance: balance !== undefined ? Number(balance) : 0
       }
     })
     if (!transformUserId.value) {
@@ -436,8 +382,11 @@ const confirmTransform = async () => {
 
 // 跳转记录页面
 const goToRecords = () => {
+  console.log('[我的资金] 点击查看转化记录，准备跳转')
   uni.navigateTo({
-    url: '/subPackages/page2/pages/fund-pool/records'
+    url: '/subPackages/page2/pages/fund-pool/records',
+    success: () => console.log('[我的资金] 跳转转化记录页成功'),
+    fail: (e) => console.error('[我的资金] 跳转转化记录页失败', e)
   })
 }
 
@@ -501,7 +450,7 @@ onLoad(() => {
 }
 
 .form-input {
-  width: 100%;
+  width: 90%;
   height: 80rpx;
   padding: 0 24rpx;
   font-size: 28rpx;
@@ -545,6 +494,12 @@ onLoad(() => {
   margin-top: 8rpx;
   font-size: 24rpx;
   color: #ff6b00;
+}
+.pool-balance {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #666;
 }
 
 .submit-transform-btn {

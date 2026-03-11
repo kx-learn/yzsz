@@ -205,7 +205,7 @@ import { getPendingReferrer, clearPendingReferrer } from '@/utils/referral.js'
 import { getOfflineOrderDetail, getOrderDetail, offlinePayUnified } from '@/api/order.js'
 import { getMyCoupons } from '@/api/coupon.js'
 import { getPointsBalance } from '@/api/points.js'
-import { bindReferrer } from '@/api/user.js'
+import { bindReferrer, getMobileByUserId } from '@/api/user.js'
 
 // 其余 API 按需动态 import
 
@@ -660,8 +660,10 @@ const handlePayment = async () => {
         console.log('[线下支付] 零元订单，直接成功')
         paymentSuccess.value = true
         showPaymentResult.value = true
+        console.log('[线下支付] 开始支付成功回调：绑定与推荐处理（零元订单）')
         await bindToMerchantIfOffline()
         await handleReferralCode()
+        console.log('[线下支付] 支付成功回调结束（零元订单）')
       } else {
         if (!payParams.timeStamp || !payParams.nonceStr || !payParams.package || !payParams.paySign) {
           throw new Error('支付参数错误，请重试')
@@ -682,8 +684,10 @@ const handlePayment = async () => {
             success: async (payRes) => {
               console.log('[线下支付] 微信支付成功:', payRes)
               try {
+                console.log('[线下支付] 开始支付成功回调：绑定与推荐处理')
                 await bindToMerchantIfOffline()
                 await handleReferralCode()
+                console.log('[线下支付] 支付成功回调结束：绑定与推荐处理')
               } catch (e) {
                 console.warn('[线下支付] 支付回调处理异常', e)
               }
@@ -740,29 +744,70 @@ const bindToMerchantIfOffline = async () => {
     const order = orderData.value
     const merchantId = order?.merchant_id ?? order?.merchantId
     if (merchantId == null || merchantId === '') {
+      console.log('[线下支付绑定] 跳过：订单缺少 merchant_id', { merchantId })
       return
     }
     const userInfo = uni.getStorageSync('userInfo') || {}
     if (userInfo.referrer_id || userInfo.referrerId) {
-      console.log('[线下支付] 用户已有推荐人，跳过绑商家')
+      console.log('[线下支付绑定] 跳过：用户已绑定推荐人', {
+        referrerId: userInfo.referrer_id || userInfo.referrerId
+      })
       return
     }
     const mobile = userInfo.mobile || userInfo.phone
     const userId = userInfo.user_id ?? userInfo.id ?? userInfo.userId ?? userInfo.uid
-    const referrerId = Number(merchantId) || String(merchantId).trim()
-    if (!referrerId) return
-    const payload = { referrer_id: referrerId }
-    if (mobile) payload.mobile = mobile
-    else if (userId != null && userId !== '') payload.user_id = userId
-    else {
-      console.warn('[线下支付] 无法获取用户 mobile/user_id，跳过绑商家')
+    const referrerUserId = Number(merchantId) || String(merchantId).trim()
+    if (!referrerUserId) {
+      console.log('[线下支付绑定] 跳过：referrerUserId 无效', { merchantId, referrerUserId })
       return
     }
-    console.log('[线下支付] 支付成功，绑定用户到商家:', payload)
+    const resolveMobileFromApi = (res) => {
+      if (!res) return ''
+      const data = res.data != null ? res.data : res
+      if (data && typeof data === 'object') {
+        const m = data.mobile ?? data.phone ?? data.data?.mobile ?? data.data?.phone
+        return m ? String(m).trim() : ''
+      }
+      return typeof data === 'string' ? data.trim() : ''
+    }
+    let buyerMobile = mobile ? String(mobile).trim() : ''
+    if (!buyerMobile && userId != null && userId !== '') {
+      try {
+        console.log('[线下支付绑定] 买方缺少 mobile，尝试通过 user_id 查询手机号', { userId })
+        const buyerRes = await getMobileByUserId(userId, 'gm2025')
+        buyerMobile = resolveMobileFromApi(buyerRes)
+        console.log('[线下支付绑定] 买方手机号查询结果', { buyerMobile })
+      } catch (e) {
+        console.error('[线下支付绑定] 买方手机号查询失败', e)
+      }
+    }
+    if (!buyerMobile) {
+      console.warn('[线下支付绑定] 跳过：无法获取买方手机号', { mobile, userId })
+      return
+    }
+    let referrerMobile = ''
+    try {
+      console.log('[线下支付绑定] 开始：通过推荐人ID查询手机号', { referrerUserId })
+      const refRes = await getMobileByUserId(referrerUserId, 'gm2025')
+      referrerMobile = resolveMobileFromApi(refRes)
+      console.log('[线下支付绑定] 推荐人手机号查询结果', { referrerUserId, referrerMobile })
+    } catch (e) {
+      console.error('[线下支付绑定] 推荐人手机号查询失败', { referrerUserId, error: e?.message || e })
+    }
+    if (!referrerMobile) {
+      console.warn('[线下支付绑定] 跳过：未获取到推荐人手机号', { referrerUserId })
+      return
+    }
+    if (String(referrerMobile) === String(buyerMobile)) {
+      console.warn('[线下支付绑定] 跳过：推荐人手机号与买方相同', { buyerMobile, referrerMobile })
+      return
+    }
+    const payload = { mobile: buyerMobile, referrer_mobile: referrerMobile }
+    console.log('[线下支付绑定] 调用 bindReferrer(mobile+referrer_mobile)', payload)
     await bindReferrer(payload)
-    console.log('[线下支付] 绑商家成功')
+    console.log('[线下支付绑定] ✅ 绑定成功（mobile+referrer_mobile）', payload)
   } catch (e) {
-    console.warn('[线下支付] 绑商家失败（不影响支付）:', e)
+    console.error('[线下支付绑定] ❌ 绑定流程异常（不影响支付）', e)
   }
 }
 
@@ -876,6 +921,25 @@ function getPageOptions() {
 }
 
 onLoad((options) => {
+  const token = uni.getStorageSync('token')
+  if (!token) {
+    console.warn('[线下支付] 未登录，阻止进入支付页')
+    uni.showModal({
+      title: '请先登录',
+      content: '登录后才能继续支付',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          uni.reLaunch({ url: '/pages/index/index' })
+        } else {
+          goBack()
+        }
+      }
+    })
+    loading.value = false
+    return
+  }
   const opts = options && Object.keys(options || {}).length > 0 ? options : getPageOptions()
   console.log('[线下支付] 页面加载参数 onLoad:', options, 'getPageOptions:', opts)
   
@@ -907,6 +971,8 @@ onLoad((options) => {
 })
 
 onShow(() => {
+  const token = uni.getStorageSync('token')
+  if (!token) return
   if (orderNo.value) return
   const opts = getPageOptions()
   const parsed = parseOrderNoFromOptions(opts)

@@ -51,6 +51,7 @@ const merchantId = ref(null)
 const amount = ref('')
 const productName = ref('')
 const submitting = ref(false)
+const postLoginRedirectKey = 'postLoginRedirect'
 
 const isAmountValid = computed(() => {
   const n = Number(amount.value)
@@ -59,7 +60,7 @@ const isAmountValid = computed(() => {
 
 function parseScene(scene) {
   if (!scene || typeof scene !== 'string') return {}
-  const decoded = decodeURIComponent(scene)
+  const decoded = safeDecode(scene)
   const params = {}
   decoded.split('&').forEach((pair) => {
     const [k, v] = pair.split('=')
@@ -68,10 +69,25 @@ function parseScene(scene) {
   return params
 }
 
+function safeDecode(str) {
+  if (!str || typeof str !== 'string') return ''
+  let s = str
+  for (let i = 0; i < 2; i++) {
+    try {
+      const d = decodeURIComponent(s)
+      if (d === s) break
+      s = d
+    } catch (e) {
+      break
+    }
+  }
+  return s
+}
+
 /** 从 URL 或 query 字符串中解析 id（如 https://hzai.tech/offline?id=27 或 id=27） */
 function parseIdFromUrlOrQuery(str) {
   if (!str || typeof str !== 'string') return null
-  const s = str.trim()
+  const s = safeDecode(str).trim()
   let query = s
   if (s.includes('?')) {
     query = s.slice(s.indexOf('?') + 1)
@@ -88,11 +104,43 @@ function parseIdFromUrlOrQuery(str) {
 
 onLoad((options) => {
   options = options || {}
+  const token = uni.getStorageSync('token')
+  if (!token) {
+    const id = options.id ?? options.merchant_id ?? options.mid ?? ''
+    const q = options.q || (options.query && options.query.q) || ''
+    const scene = options.scene || (options.query && options.query.scene) || ''
+    let redirectUrl = '/pages/offline/permanentPay'
+    if (id !== '' && id != null) {
+      redirectUrl += `?id=${encodeURIComponent(String(id))}`
+    } else if (q) {
+      redirectUrl += `?q=${encodeURIComponent(String(q))}`
+    } else if (scene) {
+      redirectUrl += `?scene=${encodeURIComponent(String(scene))}`
+    }
+    try {
+      uni.setStorageSync(postLoginRedirectKey, { url: redirectUrl, createdAt: Date.now() })
+    } catch (e) {}
+    uni.showModal({
+      title: '请先登录',
+      content: '登录后才能继续扫码付款',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          uni.reLaunch({ url: '/pages/index/index' })
+        } else {
+          uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/home/home' }) })
+        }
+      }
+    })
+    return
+  }
   // 扫码进入带 id 参数时作为商家 id；也兼容 merchant_id / mid / scene、以及启动参数为完整 URL
   let mid = options.id ?? options.merchant_id ?? options.mid
   if (mid == null || mid === '') {
-    const scene = options.scene || (options.query && options.query.scene) || options.q
-    mid = parseIdFromUrlOrQuery(scene)
+    const q = options.q || (options.query && options.query.q) || ''
+    const scene = options.scene || (options.query && options.query.scene) || q
+    mid = parseIdFromUrlOrQuery(scene) || parseIdFromUrlOrQuery(q)
     if (mid == null || mid === '') {
       const params = parseScene(scene)
       mid = params.id ?? params.merchant_id ?? params.mid ?? params.m

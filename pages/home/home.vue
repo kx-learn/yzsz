@@ -417,6 +417,14 @@ const loadProducts = async (page = 1, append = false) => {
 			       p.is_member_product === null || 
 			       p.is_member_product === undefined
 		})
+
+		// 首页普通商品仅展示「食品饮料」分类，其它分类去商品列表查看
+		const isFoodDrink = (p) => {
+			const raw = p.category ?? p.category_name ?? p.categoryName ?? p.cate_name ?? p.cateName ?? ''
+			const s = String(raw || '').trim()
+			return s === '食品饮料'
+		}
+		const normalProductsOnHome = normalProductsList.filter(isFoodDrink)
 		
 		console.log('[首页] 过滤结果:', {
 			总商品数: productList.length,
@@ -441,7 +449,7 @@ const loadProducts = async (page = 1, append = false) => {
 			return formatted
 		})
 		
-		const formattedNormalProducts = normalProductsList.map(product => {
+		const formattedNormalProducts = normalProductsOnHome.map(product => {
 			const formatted = formatProduct(product)
 			// 如果有销量数据，使用销量接口返回的数据
 			if (salesMap[product.id] !== undefined) {

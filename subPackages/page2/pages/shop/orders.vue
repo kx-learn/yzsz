@@ -1,9 +1,7 @@
 <template>
   <view class="orders-page">
     <!-- 测试：确保页面能正常渲染 -->
-    <view style="padding: 20rpx; background: #fff; margin-bottom: 20rpx;">
-      <text style="font-size: 28rpx; color: #333;">订单管理页面</text>
-    </view>
+    
     <!-- 订单统计：待付款 / 待收货 / 待发货 / 待售后 / 已完成 -->
     <view class="stats-section">
       <view class="stats-item" @tap="filterOrders('pending_pay')">

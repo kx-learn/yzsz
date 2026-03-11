@@ -78,6 +78,23 @@ import { WECHAT_APPID } from '@/utils/config.js'
 import { getPendingReferrer } from '@/utils/referral.js'
 import { switchToMerchantMode, switchToShopMode } from '@/utils/tabbar.js'
 
+const postLoginRedirectKey = 'postLoginRedirect'
+const consumePostLoginRedirect = () => {
+	try {
+		const data = uni.getStorageSync(postLoginRedirectKey)
+		if (!data || !data.url) return ''
+		const createdAt = Number(data.createdAt || 0)
+		if (createdAt && Date.now() - createdAt > 30 * 60 * 1000) {
+			uni.removeStorageSync(postLoginRedirectKey)
+			return ''
+		}
+		uni.removeStorageSync(postLoginRedirectKey)
+		return String(data.url || '').trim()
+	} catch (e) {
+		return ''
+	}
+}
+
 const phone = ref('')
 const password = ref('')
 const nickname = ref('')
@@ -191,6 +208,14 @@ const checkAndFillPendingReferrer = () => {
 }
 
 const goToAppHome = () => {
+	const redirectUrl = consumePostLoginRedirect()
+	if (redirectUrl) {
+		uni.showToast({ title: '登录成功，返回扫码页', icon: 'none', duration: 1200 })
+		setTimeout(() => {
+			uni.reLaunch({ url: redirectUrl })
+		}, 350)
+		return
+	}
 	// 在跳转前，如果有推荐码，保存到本地存储，供首页使用
 	if (inviteCode.value && inviteCode.value.trim()) {
 		const code = inviteCode.value.trim()
@@ -503,6 +528,15 @@ const handleLogin = async () => {
 		
 		uni.hideLoading()
 		uni.showToast({ title: '登录成功', icon: 'success' })
+
+		{
+			const redirectUrl = consumePostLoginRedirect()
+			if (redirectUrl) {
+				uni.showToast({ title: '登录成功，返回扫码页', icon: 'none', duration: 1200 })
+				setTimeout(() => uni.reLaunch({ url: redirectUrl }), 350)
+				return
+			}
+		}
 		
 		// 保存登录时间和免登录状态
 		const loginTime = Date.now()
@@ -772,6 +806,15 @@ const onGetPhoneNumber = async (e) => {
 		
 		uni.hideLoading()
 		uni.showToast({ title: '登录成功', icon: 'success' })
+
+		{
+			const redirectUrl = consumePostLoginRedirect()
+			if (redirectUrl) {
+				uni.showToast({ title: '登录成功，返回扫码页', icon: 'none', duration: 1200 })
+				setTimeout(() => uni.reLaunch({ url: redirectUrl }), 350)
+				return
+			}
+		}
 		
 		// 记录登录时间
 		uni.setStorageSync('loginTime', Date.now())
@@ -1068,6 +1111,15 @@ const handleWeChatLogin = async () => {
 						uni.hideLoading()
 						
 						uni.showToast({ title: '微信登录成功', icon: 'success' })
+
+						{
+							const redirectUrl = consumePostLoginRedirect()
+							if (redirectUrl) {
+								uni.showToast({ title: '登录成功，返回扫码页', icon: 'none', duration: 1200 })
+								setTimeout(() => uni.reLaunch({ url: redirectUrl }), 350)
+								return
+							}
+						}
 						
 						// 记录登录时间和免登录状态（微信登录默认启用7天免登录）
 						const loginTime = Date.now()

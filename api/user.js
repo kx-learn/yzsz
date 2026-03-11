@@ -957,6 +957,24 @@ export const getReferralQR = async (userId) => {
 }
 
 /**
+ * 根据用户ID获取推荐码（用于扫码支付绑定）
+ * @param {String|Number} userId 推荐人用户ID
+ * @returns {Promise<String>} 推荐码
+ */
+export const getReferralCodeByUserId = async (userId) => {
+  if (userId == null || userId === '') {
+    return Promise.reject(new Error('用户ID不能为空'))
+  }
+  const uid = typeof userId === 'number' ? userId : String(userId).trim()
+  const res = await request.get('/user/referral-code', { user_id: uid })
+  const data = res && (res.data != null ? res.data : res)
+  const code = data?.referral_code ?? data?.referralCode ?? data?.code ?? data?.invite_code ?? data?.inviteCode ?? (typeof data === 'string' ? data : '')
+  const s = typeof code === 'string' ? code.trim() : String(code || '').trim()
+  if (!s) throw new Error('未获取到推荐码')
+  return s
+}
+
+/**
  * 刷新用户的推荐二维码（强制重新生成）
  * @param {Number} userId 用户ID
  * @returns {Promise<String>} 返回新的二维码图片URL

@@ -223,11 +223,11 @@
 				</button>
 				<!-- 待售后订单：查询退款进度 -->
 				<button 
-					class="btn secondary" 
-					v-if="order.status === 'refunding' || order.status === 'refunded'" 
-					@tap="checkRefundProgress"
+				  class="btn secondary" 
+				  v-if="refundInfo && refundInfo.status" 
+				  @tap="checkRefundProgress"
 				>
-					查询退款进度
+				  查询退款进度
 				</button>
 			</view>
 		</view>
@@ -427,28 +427,37 @@ const loadOrderDetail = async (orderNumber) => {
 			}, 0)
 		}
 		
-		// 退款中/已退款/已完成且有退款信息时，仅预加载退款数据供页面展示，不自动打开退款进度弹窗（弹窗仅由用户点击「查询退款进度」打开）
-		const hasRefundInfo = orderData.refund_reason || orderData.refundReason || orderData.refund_status || orderData.refundStatus
-		if (orderData.status === 'refunding' || orderData.status === 'refunded' || (orderData.status === 'completed' && hasRefundInfo)) {
-			try {
-				const refundResult = await getRefundProgress(orderData.order_no || orderData.orderNo || orderData.order_number)
-				refundInfo.value = refundResult.data || refundResult
-				console.log('[订单详情] 退款信息已加载:', refundInfo.value)
-			} catch (refundError) {
-				console.error('[订单详情] 查询退款进度失败:', refundError)
-				// 如果查询失败，但订单数据中有退款信息，使用订单数据中的退款信息
-				if (hasRefundInfo) {
-					refundInfo.value = {
-						status: orderData.refund_status || orderData.refundStatus || null,
-						reason_code: orderData.refund_reason || orderData.refundReason || null
-					}
-					console.log('[订单详情] 使用订单数据中的退款信息:', refundInfo.value)
-				} else {
-					refundInfo.value = null
-				}
-			}
+		// 优先使用订单详情中返回的退款信息（如果有）
+		if (orderData.refund_info) {
+		    refundInfo.value = orderData.refund_info;
+		    console.log('[订单详情] 从订单数据中获取退款信息:', refundInfo.value);
+		} else if (orderData.refund || orderData.refundInfo) {
+		    refundInfo.value = orderData.refund || orderData.refundInfo;
+		    console.log('[订单详情] 从订单数据中获取退款信息:', refundInfo.value);
 		} else {
-			refundInfo.value = null
+		    // 如果订单数据中没有退款信息，再根据状态决定是否主动查询
+		    const hasRefundInfo = orderData.refund_reason || orderData.refundReason || orderData.refund_status || orderData.refundStatus;
+		    if (orderData.status === 'refunding' || orderData.status === 'refunded' || (orderData.status === 'completed' && hasRefundInfo)) {
+		        try {
+		            const refundResult = await getRefundProgress(orderData.order_no || orderData.orderNo || orderData.order_number);
+		            refundInfo.value = refundResult.data || refundResult;
+		            console.log('[订单详情] 通过接口查询到退款信息:', refundInfo.value);
+		        } catch (refundError) {
+		            console.error('[订单详情] 查询退款进度失败:', refundError);
+		            // 如果查询失败，但订单数据中有退款信息，使用订单数据中的退款信息
+		            if (hasRefundInfo) {
+		                refundInfo.value = {
+		                    status: orderData.refund_status || orderData.refundStatus || null,
+		                    reason_code: orderData.refund_reason || orderData.refundReason || null
+		                };
+		                console.log('[订单详情] 使用订单数据中的退款信息:', refundInfo.value);
+		            } else {
+		                refundInfo.value = null;
+		            }
+		        }
+		    } else {
+		        refundInfo.value = null;
+		    }
 		}
 		
 		// 计算订单创建时间戳
@@ -1043,32 +1052,26 @@ const goToEvaluation = () => {
  * 检查是否可以申请退款
  */
 const canApplyRefund = () => {
-	// 待发货和待收货状态可以申请
-	if (order.value.status === 'pending_ship' || order.value.status === 'pending_recv') {
-		return true
-	}
-	
-	// 已完成状态需要检查条件
-	if (order.value.status === 'completed') {
-		// 1. 检查是否已经申请过退款（如果 refundStatus 不为空，说明已经申请过）
-		if (order.value.refundStatus || (refundInfo.value && refundInfo.value.status)) {
-			return false // 已经申请过退款，不能再次申请
-		}
-		
-		// 2. 检查订单创建时间是否超过15天
-		if (order.value.createTimeStamp > 0) {
-			const now = Date.now()
-			const daysDiff = (now - order.value.createTimeStamp) / (1000 * 60 * 60 * 24) // 转换为天数
-			if (daysDiff > 15) {
-				return false // 超过15天，不能申请退款
-			}
-		}
-		
-		// 15天内且未申请过退款，可以申请
-		return true
-	}
-	
-	return false
+  // 如果已有退款信息且状态不是拒绝，则不可申请
+  if (refundInfo.value && refundInfo.value.status && refundInfo.value.status !== 'rejected') {
+    return false
+  }
+
+  // 待发货、待收货状态允许申请
+  if (order.value.status === 'pending_ship' || order.value.status === 'pending_recv') {
+    return true
+  }
+
+  // 已完成状态需满足15天内
+  if (order.value.status === 'completed') {
+    if (order.value.createTimeStamp > 0) {
+      const now = Date.now()
+      const daysDiff = (now - order.value.createTimeStamp) / (1000 * 60 * 60 * 24)
+      return daysDiff <= 15
+    }
+  }
+
+  return false
 }
 
 /**
@@ -1177,22 +1180,12 @@ const getRefundStatusText = (status) => {
  * 检查是否有退款状态（用于判断是否显示退款信息卡片）
  */
 const hasRefundStatus = () => {
-	// 如果是退款中或已退款状态，且有退款信息，则显示
-	if ((order.value.status === 'refunding' || order.value.status === 'refunded') && refundInfo.value) {
-		return true
-	}
-	
-	// 如果是已完成状态，检查是否有退款状态
-	if (order.value.status === 'completed') {
-		// 检查退款状态是否不为空
-		const refundStatus = (refundInfo.value && refundInfo.value.status) || order.value.refundStatus
-		// 只有当退款状态不为空（不是 null、undefined、空字符串）时才显示
-		if (refundStatus && String(refundStatus).trim() !== '') {
-			return true
-		}
-	}
-	
-	return false
+  // 只要有退款信息且退款状态不为空，就显示退款卡片
+  if (refundInfo.value && refundInfo.value.status) {
+    return true
+  }
+  // 兜底：如果订单主状态是退款中/已退款，但退款信息为空（理论上不会），也显示
+  return order.value.status === 'refunding' || order.value.status === 'refunded'
 }
 
 /**

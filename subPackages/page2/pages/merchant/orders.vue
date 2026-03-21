@@ -83,7 +83,7 @@
         </view>
         
         <!-- 退款申请信息（待售后订单显示） -->
-        <view v-if="order.status === 'refunding'" class="refund-info">
+        <view v-if="order.refund_info" class="refund-info">
           <view class="refund-header">
             <text class="refund-title">退款申请</text>
             <text class="refund-status" v-if="order.refund_info && order.refund_info.status">
@@ -112,58 +112,24 @@
         </view>
         
         <view class="order-actions">
-          <!-- 待售后订单（申请退款）：显示审核按钮 -->
-          <template v-if="order.status === 'refunding'">
-            <!-- 只有待审核状态才显示通过/拒绝按钮 -->
-            <!-- 如果没有退款信息，或者状态为空，或者状态是待审核，都显示审核按钮 -->
-            <template v-if="!order.refund_info || !order.refund_info.status || order.refund_info.status === 'pending' || order.refund_info.status === 'applied' || order.refund_info.status === ''">
-              <button 
-                class="action-btn approve"
-                @tap.stop="approveRefund(order)"
-              >
-                同意退款
-              </button>
-              <button 
-                class="action-btn reject"
-                @tap.stop="rejectRefund(order)"
-              >
-                拒绝退款
-              </button>
+          <!-- 有退款信息时，根据退款状态显示审核按钮或状态 -->
+          <template v-if="order.refund_info && order.refund_info.status">
+            <!-- 待审核状态显示同意/拒绝按钮 -->
+            <template v-if="order.refund_info.status === 'pending' || order.refund_info.status === 'applied'">
+              <button class="action-btn approve" @tap.stop="approveRefund(order)">同意退款</button>
+              <button class="action-btn reject" @tap.stop="rejectRefund(order)">拒绝退款</button>
             </template>
-            <!-- 如果退款状态不是待审核，显示状态文本 -->
-            <button 
-              v-else
-              class="action-btn disabled"
-              disabled
-            >
-              {{ getRefundStatusText(order.refund_info.status) }}
-            </button>
+            <!-- 其他退款状态（如已通过、已拒绝、成功等）显示状态文本 -->
+            <template v-else>
+              <button class="action-btn disabled" disabled>{{ getRefundStatusText(order.refund_info.status) }}</button>
+            </template>
           </template>
-          <!-- 其他状态的按钮 -->
+          <!-- 无退款信息，显示正常订单操作按钮 -->
           <template v-else>
-            <!-- 待付款状态显示禁用按钮 -->
-            <button 
-              v-if="order.status === 'pending_pay'" 
-              class="action-btn disabled"
-              disabled
-            >
-              待付款
-            </button>
-            <!-- 待发货状态显示发货按钮 -->
-            <button 
-              v-if="order.status === 'pending_ship'" 
-              class="action-btn ship"
-              @tap.stop="shipOrder(order)"
-            >
-              发货
-            </button>
+            <button v-if="order.status === 'pending_pay'" class="action-btn disabled" disabled>待付款</button>
+            <button v-if="order.status === 'pending_ship'" class="action-btn ship" @tap.stop="shipOrder(order)">发货</button>
           </template>
-          <button 
-            class="action-btn detail"
-            @tap.stop="goToOrderDetail(order)"
-          >
-            查看详情
-          </button>
+          <button class="action-btn detail" @tap.stop="goToOrderDetail(order)">查看详情</button>
         </view>
       </view>
       
@@ -813,18 +779,10 @@ const getRefundStatusText = (status) => {
  * 如果退款被拒绝，显示"已拒绝"而不是"退款中"
  */
 const getDisplayStatus = (order) => {
-  // 检查退款状态
-  if (order.status === 'refunding') {
-    const refundStatus = order.refund_info?.status || order.refund?.status
-    console.log('[订单列表] 订单状态检查:', {
-      orderNo: order.orderNo,
-      orderStatus: order.status,
-      refundInfo: order.refund_info,
-      refundStatus: refundStatus
-    })
-    if (refundStatus === 'rejected') {
-      return 'rejected'
-    }
+  // 优先根据退款状态判断
+  const refundStatus = order.refund_info?.status || order.refund?.status
+  if (refundStatus === 'rejected') {
+    return 'rejected'
   }
   return order.status
 }
@@ -834,12 +792,9 @@ const getDisplayStatus = (order) => {
  * 如果退款被拒绝，显示"已拒绝"而不是"退款中"
  */
 const getDisplayStatusText = (order) => {
-  // 检查退款状态
-  if (order.status === 'refunding') {
-    const refundStatus = order.refund_info?.status || order.refund?.status
-    if (refundStatus === 'rejected') {
-      return '已拒绝'
-    }
+  const refundStatus = order.refund_info?.status || order.refund?.status
+  if (refundStatus === 'rejected') {
+    return '已拒绝'
   }
   return getStatusText(order.status)
 }

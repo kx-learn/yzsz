@@ -66,12 +66,21 @@
 
     <!-- 提交按钮 -->
     <view class="footer-action">
+      <!-- 原有的确认发放按钮 -->
       <button 
         class="submit-btn" 
         :loading="submitting" 
         @tap="handleDistribute"
       >
         确认发放
+      </button>
+    
+      <!-- 新增：批量发放优惠券按钮 -->
+      <button 
+        class="batch-btn" 
+        @tap="goBatchGrant"
+      >
+        批量发放优惠券
       </button>
     </view>
   </view>
@@ -88,6 +97,11 @@ const formData = ref({
   amount: '',
   applicable_product_type: 'all' // 默认不限制
 })
+
+// 跳转到批量发放页面
+const goBatchGrant = () => {
+  uni.navigateTo({ url: '/subPackages/page2/pages/merchant/batch-coupon' })
+}
 
 const handleDistribute = async () => {
   // 验证用户ID
@@ -288,5 +302,21 @@ const handleDistribute = async () => {
 
 .submit-btn:active {
   transform: scale(0.98);
+}
+
+.batch-btn {
+  margin-top: 20rpx;
+  background: linear-gradient(135deg, #07c160, #06ad56);
+  color: white;
+  border-radius: 50rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  height: 88rpx;
+  line-height: 88rpx;
+  border: none;
+  width: 100%;
+}
+.batch-btn:active {
+  opacity: 0.8;
 }
 </style>

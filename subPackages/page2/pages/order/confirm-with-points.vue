@@ -125,7 +125,7 @@
 		</view>
 
 		<!-- 优惠券（普通 / 会员商品通用，根据券类型和范围判断） -->
-		<view class="coupon-section">
+		<view class="coupon-section" v-if="!hasCashOnlyProduct">
 			<view class="section-header">
 				<text class="section-title">优惠券</text>
 				<text class="available-points">共有 {{ availableCoupons.length }} 张可用</text>
@@ -289,6 +289,7 @@ const userPoints = ref(0)
 // 订单商品
 const orderItems = ref([])
 
+
 // 订单来源：'direct' 直接购买，'cart' 购物车购买
 const orderSource = ref('direct')
 
@@ -323,14 +324,28 @@ const originalAmount = computed(() => {
 	return productTotal.value + deliveryFee.value
 })
 
+const hasCashOnlyProduct = computed(() => {
+  return orderItems.value.some(item => item.cash_only == 1) // 匹配数字 1 或字符串 '1'
+})
+
 // 是否存在至少一个“可使用积分”的普通商品
 const canUsePoints = computed(() => {
-	return orderItems.value.some(item => !(item.isVip || item.productType === 'vip'))
+  // 如果存在现金商品，则不能使用积分
+  if (hasCashOnlyProduct.value) return false
+  // 检查是否存在普通商品（非会员商品）
+  return orderItems.value.some(item => !(item.isVip || item.productType === 'vip'))
 })
 
 // 最大可抵扣积分
-// 规则：会员商品不可抵扣；普通商品使用商品接口的 max_points_discount 参数，按单件 max_points_discount×数量汇总，再受订单金额50%与用户积分上限约束
+// 规则：会员商品不可抵扣；普通商品严格使用后端返回的 max_points_discount 参数：
+// - 当 max_points_discount 为 0 或未返回字段时，视为该商品不允许积分抵扣
+// - 仅当 max_points_discount > 0 时才允许抵扣，单件上限为该值，仍受订单金额50%与用户积分上限约束
 const maxPointsDiscount = computed(() => {
+	// 如果存在现金商品，直接返回0
+	  if (hasCashOnlyProduct.value) {
+	    console.log('[积分抵扣] 订单中包含现金商品，禁止积分抵扣')
+	    return 0
+	  }
 	// 先按商品汇总可抵扣金额
 	const productCap = orderItems.value.reduce((sum, item) => {
 		const isVipProduct = item.isVip || item.productType === 'vip'
@@ -343,8 +358,9 @@ const maxPointsDiscount = computed(() => {
 		// 单件抵扣上限：优先使用商品接口的 max_points_discount 参数
 		// 支持两种字段名：max_points_discount（后端接口字段）或 maxPointsDeduction（前端转换后的字段）
 		let perItemCap = 0
-		
-		// 优先使用后端接口的 max_points_discount 字段（即使为0也要使用，0表示不限制）
+
+		// 优先使用后端接口的 max_points_discount 字段
+		// 注意：当为 0 或未返回时，表示“不允许积分抵扣”
 		if (typeof item.max_points_discount === 'number') {
 			perItemCap = item.max_points_discount
 			console.log(`[积分抵扣] 商品 ${item.name} 使用 max_points_discount:`, perItemCap)
@@ -353,13 +369,13 @@ const maxPointsDiscount = computed(() => {
 			perItemCap = item.maxPointsDeduction
 			console.log(`[积分抵扣] 商品 ${item.name} 使用 maxPointsDeduction:`, perItemCap)
 		} else {
-			console.warn(`[积分抵扣] 商品 ${item.name} 没有积分抵扣上限字段，使用价格作为上限`)
+			console.warn(`[积分抵扣] 商品 ${item.name} 没有积分抵扣上限字段，视为不允许积分抵扣`)
 		}
-		
-		// 如果 max_points_discount 为 0 或未设置，则不限制（以单价为上限）
+
+		// 当后端设置为 0 或未设置时，不允许积分抵扣
 		if (perItemCap <= 0) {
-			perItemCap = price
-			console.log(`[积分抵扣] 商品 ${item.name} 抵扣上限为0或未设置，使用价格作为上限:`, perItemCap)
+			console.log(`[积分抵扣] 商品 ${item.name} 抵扣上限为 0 或未设置，禁止积分抵扣`)
+			return sum
 		}
 
 		// 单件抵扣上限不能超过单价
@@ -391,14 +407,14 @@ const maxPointsDiscount = computed(() => {
 		'用户积分': userPoints.value
 	})
 	
-	// 最终限制：商品设置的抵扣上限优先，订单金额50%仅作为最终上限
-	let finalLimit = productCap
+	// 最终限制：仅当商品设置了抵扣上限时才允许积分抵扣；
+	// 商品总上限为 0 时，整单不允许积分抵扣（不再使用订单金额50%兜底）
+	let finalLimit = 0
 	if (productCap > 0) {
 		finalLimit = roundTo4(Math.min(productCap, orderHalf))
 		console.log(`[积分抵扣] 商品设置了抵扣上限，使用商品设置的值（受订单50%限制）:`, finalLimit)
 	} else {
-		finalLimit = orderHalf
-		console.log(`[积分抵扣] 商品未设置抵扣上限，使用订单金额50%:`, finalLimit)
+		console.log(`[积分抵扣] 所有商品的积分抵扣上限为 0，整单禁止积分抵扣`)
 	}
 	
 	// 最终可抵扣积分：取用户积分和最终限制的最小值，精确到4位小数（不再使用 Math.floor，否则 0.01 会变成 0）
@@ -481,6 +497,8 @@ const loadAvailableCoupons = async () => {
 
 // 优惠券是否适用于当前订单
 const isCouponValidForOrder = (coupon) => {
+	// 如果订单中存在现金商品，任何优惠券都不可用
+	if (hasCashOnlyProduct.value) return false
 	// 检查订单商品类型
 	const hasVipProduct = orderItems.value.some(item => 
 		item.isVip === true || 
@@ -1516,6 +1534,10 @@ onLoad(async (options) => {
 				})
 				
 				orderItems.value = processedItems
+				 // ===== 添加调试代码 =====
+				console.log('订单商品数据：', JSON.stringify(orderItems.value, null, 2))
+				console.log('hasCashOnlyProduct 值：', hasCashOnlyProduct.value)
+				// ===== 结束调试代码 =====
 				console.log('[检查点2] 处理后的订单商品数量:', orderItems.value.length)
 				console.log('[检查点2] 处理后的订单商品:', orderItems.value.map(item => ({
 					商品ID: item.id || item.product_id,

@@ -85,15 +85,6 @@
 					<text class="menu-arrow">›</text>
 				</view>
 			</view>
-			<view class="menu-item" @tap="scanToPay">
-				<view class="menu-left">
-					<text class="iconfont icon-xiangji menu-icon"></text>
-					<text class="menu-text">扫码付款</text>
-				</view>
-				<view class="menu-right">
-					<text class="menu-arrow">›</text>
-				</view>
-			</view>
 			<view class="menu-item" @tap="goToPage('/subPackages/page2/pages/user/coupons')">
 				<view class="menu-left">
 					<text class="menu-icon iconfont icon-youhuijuan"></text>

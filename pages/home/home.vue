@@ -22,10 +22,6 @@
 				<text class="iconfont icon-sousuo search-icon"></text>
 				<text class="search-placeholder">搜索商品</text>
 			</view>
-			<view class="scan-pay-btn" @tap="scanToPay">
-				<text class="iconfont icon-saoyisao scan-icon"></text>
-				<text class="scan-pay-text">扫码付款</text>
-			</view>
 		</view>
 
 		<!-- 轮播图 -->

@@ -15,7 +15,7 @@ export const WECHAT_SETTLE_RULE_ID = ''
 
 // 服务器地址配置
 const SERVER_CONFIGS = {
-  production: 'https://hzai.tech',  // 生产环境地址（不包含/api）
+  production: 'https://yuzedigital.site',  // 生产环境地址（不包含/api）
   custom: '' // 自定义地址
 }
 

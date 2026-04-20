@@ -198,7 +198,7 @@
           />
         </view>
 
-        <view class="form-item" v-if="productForm.productType !== 'vip'">
+        <view class="form-item" v-if="true">
           <text class="form-label">
             积分抵扣上限
             <text class="form-label-sub">(仅普通商品可用，会员商品不可使用积分)</text>
@@ -222,7 +222,23 @@
 	    <text class="checkbox-label">是（该商品不能使用积分和优惠券）</text>
 	  </view>
 	</view>
-	
+	<!-- 在“仅限现金支付”后添加 -->
+	<view class="form-item" v-if="productForm.productType !== 'vip'">
+	  <text class="form-label">虚拟商品</text>
+	  <view class="checkbox-wrapper">
+	    <checkbox :checked="productForm.isVirtual" @click="toggleVirtual" />
+	    <text class="checkbox-label">是（无需物流，自动发货）</text>
+	  </view>
+	</view>
+	<!-- 新增：首页推荐 -->
+	<view class="form-item">
+	  <text class="form-label">首页推荐</text>
+	  <view class="checkbox-wrapper">
+	    <checkbox :checked="productForm.isHomeRecommend" @click="toggleHomeRecommend" />
+	    <text class="checkbox-label">是（商品将在首页推荐展示）</text>
+	  </view>
+	</view>	
+		
 	<view class="form-item" v-if="productForm.productType !== 'vip'">
 	  <text class="form-label">赠送雨点</text>
 	  <input 
@@ -408,7 +424,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { createProduct, updateProduct, uploadProductImages, updateProductImages, deleteProductImages, getProductDetail } from '@/api/product.js'
+import { createProduct, updateProduct, uploadProductImages, updateProductImages, deleteProductImages, getProductDetail,updateHomeRecommend } from '@/api/product.js'
 import config from '@/utils/config.js'
 import { chooseImageWithPermission } from '../../utils/permission.js'
 
@@ -438,6 +454,7 @@ const productForm = ref({
   maxPointsDeduction: 0,
   isVirtual: false,        // 虚拟商品标识
   cashOnly: false,        // 新增：仅限现金支付
+  isHomeRecommend: false, // 新增：首页推荐
   rewardRain: 0,           // 赠送雨点
   rewardPoints: 0,         // 赠送积分
   // 兼容旧字段
@@ -457,6 +474,15 @@ const hasSpecs = computed(() => {
 const toggleCashOnly = () => {
   productForm.value.cashOnly = !productForm.value.cashOnly;
   console.log('[toggleCashOnly] cashOnly =', productForm.value.cashOnly);
+}
+
+const toggleHomeRecommend = () => {
+  productForm.value.isHomeRecommend = !productForm.value.isHomeRecommend;
+  console.log('[toggleHomeRecommend] isHomeRecommend =', productForm.value.isHomeRecommend);
+}
+const toggleVirtual = () => {
+  productForm.value.isVirtual = !productForm.value.isVirtual;
+  console.log('[toggleVirtual] isVirtual =', productForm.value.isVirtual);
 }
 // 监听规格类型变化，更新样式的specifications结构
 watch(() => productForm.value.specs, (newSpecs, oldSpecs) => {
@@ -489,8 +515,8 @@ watch(() => productForm.value.specs, (newSpecs, oldSpecs) => {
 
 // 分类选项
 const categoryOptions = [
-  '服装鞋帽', '数码电器', '美妆护肤', '母婴用品', 
-  '家居生活', '运动户外', '图书文具', '食品饮料', '其他'
+  '服装鞋帽', '数码电器', '美妆护肤', '母婴用品',
+  '家居生活', '运动户外', '图书文具', '食品饮料', '生鲜', '其他'
 ]
 
 // 商品类型选项
@@ -1877,6 +1903,20 @@ const publishProduct = async () => {
       console.log('[商品创建] 创建成功，商品ID:', productIdResult)
     }
     
+	// ===== 在这里插入推荐设置代码 =====
+	if (productForm.value.isHomeRecommend !== undefined) {
+	    try {
+	        await updateHomeRecommend(productIdResult, productForm.value.isHomeRecommend)
+	        console.log('[商品发布] 首页推荐状态设置成功:', productForm.value.isHomeRecommend)
+	    } catch (recommendError) {
+	        console.error('[商品发布] 设置首页推荐失败:', recommendError)
+	        uni.showToast({ 
+	            title: '商品保存成功，但推荐设置失败', 
+	            icon: 'none',
+	            duration: 2000
+	        })
+	    }
+	}
     // 如果有图片，上传图片（使用multipart/form-data格式）
     if (productForm.value.images.length > 0 || productForm.value.detailImages.length > 0) {
       let uploadLoadingShown = false
@@ -2486,11 +2526,12 @@ const initFormForEdit = async (id) => {
       stock: stock,
       specs: specs,
       productType: productData.is_member_product ? 'vip' : 'normal',
-      maxPointsDeduction: productData.max_points_deduction || 0,
+      maxPointsDeduction: productData.max_points_discount || 0,
       isVip: productData.is_member_product || false,
       freight: parseFloat(productData.freight || 0),
 	  isVirtual: productData.is_virtual || false,
 	  cashOnly: productData.cash_only,        // 新增
+	  isHomeRecommend: !!productData.is_home_recommend, // 新增：首页推荐
 	  rewardRain: productData.reward_rain || 0,
 	  rewardPoints: productData.reward_points || 0,
       buyRule: productData.buy_rule || ''

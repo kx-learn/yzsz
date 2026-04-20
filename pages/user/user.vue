@@ -342,7 +342,7 @@ const loadCouponCount = async () => {
 		const userId = storedUserInfo.id || storedUserInfo.user_id
 		if (!userId) { couponCount.value = 0; return }
 
-		const res = await getMyCoupons({ user_id: userId, status: 'all', page: 1, page_size: 200 })
+		const res = await getMyCoupons({ user_id: userId, status: 'all', page: 1, page_size: 99999 })
 		const list = res.data?.coupons || res.coupons || res.data || res || []
 		const now = Date.now()
 		const validCoupons = (Array.isArray(list) ? list : []).filter(coupon => {

@@ -375,6 +375,7 @@ import { updateOrderStatus, shipOrder as shipOrderApi, getDeliveryList, getOrder
 import { searchDeliveryList } from '@/data/delivery-list.js'
 import { auditRefund, getRefundProgress } from '../../api/refund.js'
 import config from '@/utils/config.js'
+import { normalizeRemoteUrl, isAbsoluteHttpUrl } from '@/utils/imageUrl.js'
 import { getProductDetail } from '@/api/product.js'
 import { normalizeRefundInfo, resolveMerchantOrderStatusForRefund } from '@/utils/merchantRefund.js'
 
@@ -1139,10 +1140,11 @@ const loadOrderDetail = async (orderNo) => {
       // 处理图片：参考用户端订单详情的逻辑，检查所有可能的图片字段
       const processImageUrl = (img) => {
         if (!img || img === 'undefined' || img === 'null') return null
-        if (img.startsWith('http://') || img.startsWith('https://')) return img
-        if (img.startsWith('/static')) return img
-        if (img.startsWith('data:')) return img
-        const imagePath = img.startsWith('/') ? img : `/${img}`
+        const fixed = normalizeRemoteUrl(img)
+        if (isAbsoluteHttpUrl(fixed)) return fixed
+        if (fixed.startsWith('/static')) return fixed
+        if (fixed.startsWith('data:')) return fixed
+        const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
         return `${config.baseURL}${imagePath}`
       }
       

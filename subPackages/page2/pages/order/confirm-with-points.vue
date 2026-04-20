@@ -284,12 +284,9 @@ const productTotal = computed(() => {
 // 订单总金额（商品 + 配送费）
 const originalAmount = computed(() => productTotal.value + deliveryFee.value)
 
+// 订单中是否含「仅现金」商品（cash_only 为 1 或 '1'）
 const hasCashOnlyProduct = computed(() => {
   return orderItems.value.some(item => item.cash_only == 1)
-})
-
-const hasCashOnlyProduct = computed(() => {
-  return orderItems.value.some(item => item.cash_only == 1) // 匹配数字 1 或字符串 '1'
 })
 
 // 是否存在至少一个“可使用积分”的普通商品

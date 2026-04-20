@@ -182,14 +182,9 @@ const confirmBatchGrant = async () => {
     uni.hideLoading()
   }
 }
-// 跳转到批量发放页面
+// 打开本页批量发放弹窗（向雨点余额>0用户按张数发放）
 const goBatchGrant = () => {
   openBatchDialog()
-}
-
-// 跳转到批量发放页面
-const goBatchGrant = () => {
-  uni.navigateTo({ url: '/subPackages/page2/pages/merchant/batch-coupon' })
 }
 
 const handleDistribute = async () => {

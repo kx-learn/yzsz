@@ -426,6 +426,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { createProduct, updateProduct, uploadProductImages, updateProductImages, deleteProductImages, getProductDetail,updateHomeRecommend } from '@/api/product.js'
 import config from '@/utils/config.js'
+import { normalizeRemoteUrl, isAbsoluteHttpUrl } from '@/utils/imageUrl.js'
 import { chooseImageWithPermission } from '../../utils/permission.js'
 
 const productId = ref('')
@@ -1145,21 +1146,23 @@ const previewMainImage = (index) => {
   const current = images[index] || images[0]
   console.log('[预览主图] 当前索引:', index, '图片路径:', current, '总数量:', images.length)
   
-  // 确保所有图片路径都是有效的
-  const validImages = images.filter(img => img && (img.startsWith('http') || img.startsWith('/') || img.startsWith('file://')))
-  
+  const validImages = images
+    .filter(Boolean)
+    .map(normalizeRemoteUrl)
+    .filter((n) => isAbsoluteHttpUrl(n) || n.startsWith('/') || n.startsWith('file://'))
+
   if (validImages.length === 0) {
     uni.showToast({ title: '图片路径无效', icon: 'none' })
     return
   }
-  
-  // 找到当前图片在有效图片中的索引
-  const currentIndex = validImages.findIndex(img => img === current)
+
+  const currentNorm = normalizeRemoteUrl(current)
+  const currentIndex = validImages.findIndex((img) => img === currentNorm)
   const finalCurrent = currentIndex >= 0 ? validImages[currentIndex] : validImages[0]
-  
+
   uni.previewImage({
-    urls: validImages, // 必须是数组
-    current: finalCurrent, // 当前显示的图片路径
+    urls: validImages,
+    current: finalCurrent,
     fail: (err) => {
       console.error('[预览主图] 预览失败:', err)
       uni.showToast({ title: '预览失败', icon: 'none' })
@@ -1181,21 +1184,23 @@ const previewDetailImage = (index) => {
   const current = images[index] || images[0]
   console.log('[预览详情图] 当前索引:', index, '图片路径:', current, '总数量:', images.length)
   
-  // 确保所有图片路径都是有效的
-  const validImages = images.filter(img => img && (img.startsWith('http') || img.startsWith('/') || img.startsWith('file://')))
-  
+  const validImages = images
+    .filter(Boolean)
+    .map(normalizeRemoteUrl)
+    .filter((n) => isAbsoluteHttpUrl(n) || n.startsWith('/') || n.startsWith('file://'))
+
   if (validImages.length === 0) {
     uni.showToast({ title: '图片路径无效', icon: 'none' })
     return
   }
-  
-  // 找到当前图片在有效图片中的索引
-  const currentIndex = validImages.findIndex(img => img === current)
+
+  const currentNorm = normalizeRemoteUrl(current)
+  const currentIndex = validImages.findIndex((img) => img === currentNorm)
   const finalCurrent = currentIndex >= 0 ? validImages[currentIndex] : validImages[0]
-  
+
   uni.previewImage({
-    urls: validImages, // 必须是数组
-    current: finalCurrent, // 当前显示的图片路径
+    urls: validImages,
+    current: finalCurrent,
     fail: (err) => {
       console.error('[预览详情图] 预览失败:', err)
       uni.showToast({ title: '预览失败', icon: 'none' })
@@ -1958,12 +1963,14 @@ const publishProduct = async () => {
               const bannerArray = Array.isArray(uploadReturnedImages.banner_images) 
                 ? uploadReturnedImages.banner_images 
                 : [uploadReturnedImages.banner_images]
-              const processedBanners = bannerArray.map(img => {
-                if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-                  const imagePath = img.startsWith('/') ? img : `/${img}`
+              const processedBanners = bannerArray.map((img) => {
+                if (!img) return img
+                const fixed = normalizeRemoteUrl(img)
+                if (fixed && !isAbsoluteHttpUrl(fixed) && !fixed.startsWith('/static')) {
+                  const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
                   return `${config.baseURL}${imagePath}`
                 }
-                return img
+                return fixed
               }).filter(Boolean)
               
               // 合并新旧图片，去重（保留前端已选择的图片）
@@ -1981,12 +1988,14 @@ const publishProduct = async () => {
               const detailArray = Array.isArray(uploadReturnedImages.detail_images) 
                 ? uploadReturnedImages.detail_images 
                 : [uploadReturnedImages.detail_images]
-              const processedDetails = detailArray.map(img => {
-                if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-                  const imagePath = img.startsWith('/') ? img : `/${img}`
+              const processedDetails = detailArray.map((img) => {
+                if (!img) return img
+                const fixed = normalizeRemoteUrl(img)
+                if (fixed && !isAbsoluteHttpUrl(fixed) && !fixed.startsWith('/static')) {
+                  const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
                   return `${config.baseURL}${imagePath}`
                 }
-                return img
+                return fixed
               }).filter(Boolean)
               
               // 合并新旧图片，去重（保留前端已选择的图片）
@@ -2124,16 +2133,12 @@ const publishProduct = async () => {
             
             // 3. 处理图片URL
             if (bannerImages.length > 0) {
-              const processedBanners = bannerImages.map(img => {
+              const processedBanners = bannerImages.map((img) => {
                 if (!img) return null
-                if (img.startsWith('http://') || img.startsWith('https://')) {
-                  return img
-                }
-                if (img.startsWith('/static')) {
-                  return img
-                }
-                // 相对路径，拼接服务器地址
-                const imagePath = img.startsWith('/') ? img : `/${img}`
+                const fixed = normalizeRemoteUrl(img)
+                if (isAbsoluteHttpUrl(fixed)) return fixed
+                if (fixed.startsWith('/static')) return fixed
+                const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
                 return `${config.baseURL}${imagePath}`
               }).filter(Boolean)
               
@@ -2185,16 +2190,12 @@ const publishProduct = async () => {
             
             // 2. 处理图片URL
             if (detailImages.length > 0) {
-              const processedDetails = detailImages.map(img => {
+              const processedDetails = detailImages.map((img) => {
                 if (!img) return null
-                if (img.startsWith('http://') || img.startsWith('https://')) {
-                  return img
-                }
-                if (img.startsWith('/static')) {
-                  return img
-                }
-                // 相对路径，拼接服务器地址
-                const imagePath = img.startsWith('/') ? img : `/${img}`
+                const fixed = normalizeRemoteUrl(img)
+                if (isAbsoluteHttpUrl(fixed)) return fixed
+                if (fixed.startsWith('/static')) return fixed
+                const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
                 return `${config.baseURL}${imagePath}`
               }).filter(Boolean)
               
@@ -2431,42 +2432,50 @@ const initFormForEdit = async (id) => {
     let images = []
     if (productData.banner_images && Array.isArray(productData.banner_images) && productData.banner_images.length > 0) {
       // 如果 banner_images 是数组，直接使用
-      images = productData.banner_images.map(img => {
-        // 如果是相对路径，拼接服务器地址
-        if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-          const imagePath = img.startsWith('/') ? img : `/${img}`
+      images = productData.banner_images.map((img) => {
+        if (!img) return img
+        const fixed = normalizeRemoteUrl(img)
+        if (fixed && !isAbsoluteHttpUrl(fixed) && !fixed.startsWith('/static')) {
+          const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
           return `${config.baseURL}${imagePath}`
         }
-        return img
+        return fixed
       })
     } else if (productData.main_image) {
       // 如果只有 main_image，转换为数组
       const img = productData.main_image
-      if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-        const imagePath = img.startsWith('/') ? img : `/${img}`
-        images = [`${config.baseURL}${imagePath}`]
-      } else {
-        images = [img]
+      if (img) {
+        const fixed = normalizeRemoteUrl(img)
+        if (fixed && !isAbsoluteHttpUrl(fixed) && !fixed.startsWith('/static')) {
+          const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
+          images = [`${config.baseURL}${imagePath}`]
+        } else {
+          images = [fixed]
+        }
       }
     } else if (productData.images && Array.isArray(productData.images)) {
-      images = productData.images.map(img => {
-        if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-          const imagePath = img.startsWith('/') ? img : `/${img}`
+      images = productData.images.map((img) => {
+        if (!img) return img
+        const fixed = normalizeRemoteUrl(img)
+        if (fixed && !isAbsoluteHttpUrl(fixed) && !fixed.startsWith('/static')) {
+          const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
           return `${config.baseURL}${imagePath}`
         }
-        return img
+        return fixed
       })
   }
 
     // 处理详情图
     let detailImages = []
     if (productData.detail_images && Array.isArray(productData.detail_images) && productData.detail_images.length > 0) {
-      detailImages = productData.detail_images.map(img => {
-        if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-          const imagePath = img.startsWith('/') ? img : `/${img}`
+      detailImages = productData.detail_images.map((img) => {
+        if (!img) return img
+        const fixed = normalizeRemoteUrl(img)
+        if (fixed && !isAbsoluteHttpUrl(fixed) && !fixed.startsWith('/static')) {
+          const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
           return `${config.baseURL}${imagePath}`
         }
-        return img
+        return fixed
       })
     }
     

@@ -2,6 +2,8 @@
  * 项目配置文件
  */
 
+import { normalizeRemoteUrl } from './imageUrl.js'
+
 // 微信小程序 AppID，须与 manifest.json 的 mp-weixin.appid 一致。
 // 后端 jscode2session、微信支付 v3/pay/transactions/jsapi 的 appid 必须与此一致，
 // 否则 openid 与 appid 不匹配会导致登录失败或支付 400。
@@ -13,9 +15,9 @@ export const WECHAT_MERCHANT_ID = '1105084579'
 // 微信进件结算规则ID：前端有则用此前端配置，没有则用后端 GET /wechat-applyment/config 或由后端在 submit 时填充
 export const WECHAT_SETTLE_RULE_ID = ''
 
-// 服务器地址配置
+// 服务器地址配置（须含协议双斜杠 https://，勿写成 https:host 否则小程序会把图片当本地路径）
 const SERVER_CONFIGS = {
-  production: 'https:yuzedigital.site',  // 生产环境地址（不包含/api）本地测试环境：http://192.168.3.13:8001   禹泽服务器：https:yuzedigital.site
+  production: 'https://yuzedigital.site',
   custom: '' // 自定义地址
 }
 
@@ -23,12 +25,13 @@ const SERVER_CONFIGS = {
 const getCurrentServer = () => {
   const savedServer = uni.getStorageSync('current_server') || 'production'
   const customUrl = uni.getStorageSync('custom_server_url')
-  
+
   if (savedServer === 'custom' && customUrl) {
-    return customUrl
+    return normalizeRemoteUrl(String(customUrl).trim()) || String(customUrl).trim()
   }
-  
-  return SERVER_CONFIGS[savedServer] || SERVER_CONFIGS.production
+
+  const raw = SERVER_CONFIGS[savedServer] || SERVER_CONFIGS.production
+  return normalizeRemoteUrl(String(raw || '').trim()) || raw
 }
 
 export default {
@@ -55,7 +58,8 @@ export default {
 // 从环境变量或配置中心获取服务器地址（如果环境变量存在则覆盖默认值）
 if (typeof process !== 'undefined' && process.env) {
   if (process.env.VUE_APP_API_BASE_URL || process.env.API_BASE_URL) {
-    SERVER_CONFIGS.production = process.env.VUE_APP_API_BASE_URL || process.env.API_BASE_URL
+    const envUrl = process.env.VUE_APP_API_BASE_URL || process.env.API_BASE_URL
+    SERVER_CONFIGS.production = normalizeRemoteUrl(String(envUrl).trim()) || envUrl
   }
 }
 

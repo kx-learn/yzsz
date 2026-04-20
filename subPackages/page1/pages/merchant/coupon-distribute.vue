@@ -187,6 +187,11 @@ const goBatchGrant = () => {
   openBatchDialog()
 }
 
+// 跳转到批量发放页面
+const goBatchGrant = () => {
+  uni.navigateTo({ url: '/subPackages/page2/pages/merchant/batch-coupon' })
+}
+
 const handleDistribute = async () => {
   // 验证用户ID
   if (!formData.value.userId || !formData.value.userId.trim()) {

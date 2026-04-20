@@ -124,12 +124,12 @@
       </view>
     </view>
 
-    <!-- 优惠券（自动使用1元券） -->
-    <view class="coupon-section" v-if="!hasCashOnlyProduct && availableCoupons.length > 0">
-      <view class="section-header">
-        <text class="section-title">优惠券</text>
-        <text class="available-points">可用 {{ availableCoupons.length }} 张</text>
-      </view>
+		<!-- 优惠券（普通 / 会员商品通用，根据券类型和范围判断） -->
+		<view class="coupon-section">
+			<view class="section-header">
+				<text class="section-title">优惠券</text>
+				<text class="available-points">共有 {{ availableCoupons.length }} 张可用</text>
+			</view>
 
       <view class="auto-coupon-info">
         <text class="info-text">已选择 {{ selectedCouponCount }} 张1元券</text>
@@ -251,6 +251,7 @@ const userPoints = ref(0)
 // 订单商品
 const orderItems = ref([])
 
+
 // 订单来源
 const orderSource = ref('direct')
 
@@ -287,48 +288,98 @@ const hasCashOnlyProduct = computed(() => {
   return orderItems.value.some(item => item.cash_only == 1)
 })
 
-// 是否存在至少一个“可使用积分”的普通商品
-const canUsePoints = computed(() => {
-  if (hasCashOnlyProduct.value) return false
-  return orderItems.value.some(item => !(item.isVip || item.productType === 'vip'))
+const hasCashOnlyProduct = computed(() => {
+  return orderItems.value.some(item => item.cash_only == 1) // 匹配数字 1 或字符串 '1'
 })
 
-// 最大可抵扣积分（原逻辑不变，但最终结果用于 pointsToUse 限制）
+// 是否存在至少一个“可使用积分”的普通商品
+const canUsePoints = computed(() => {
+	return orderItems.value.some(item => !(item.isVip || item.productType === 'vip'))
+})
+
+// 最大可抵扣积分
+// 规则：会员商品不可抵扣；普通商品使用商品接口的 max_points_discount 参数，按单件 max_points_discount×数量汇总，再受订单金额50%与用户积分上限约束
 const maxPointsDiscount = computed(() => {
-  if (hasCashOnlyProduct.value) {
-    console.log('[积分抵扣] 订单中包含现金商品，禁止积分抵扣')
-    return 0
-  }
-  const productCap = orderItems.value.reduce((sum, item) => {
-    const isVipProduct = item.isVip || item.productType === 'vip'
-    if (isVipProduct) return sum
+	// 先按商品汇总可抵扣金额
+	const productCap = orderItems.value.reduce((sum, item) => {
+		const isVipProduct = item.isVip || item.productType === 'vip'
+		if (isVipProduct) return sum
 
     const quantity = item.quantity || 1
     const price = item.price || 0
     const itemAmount = price * quantity
 
-    let perItemCap = 0
-    if (typeof item.max_points_discount === 'number') {
-      perItemCap = item.max_points_discount
-    } else if (typeof item.maxPointsDeduction === 'number') {
-      perItemCap = item.maxPointsDeduction
-    } else {
-      console.warn(`[积分抵扣] 商品 ${item.name} 没有积分抵扣上限字段，视为不允许积分抵扣`)
-    }
+		// 单件抵扣上限：优先使用商品接口的 max_points_discount 参数
+		// 支持两种字段名：max_points_discount（后端接口字段）或 maxPointsDeduction（前端转换后的字段）
+		let perItemCap = 0
+		
+		// 优先使用后端接口的 max_points_discount 字段（即使为0也要使用，0表示不限制）
+		if (typeof item.max_points_discount === 'number') {
+			perItemCap = item.max_points_discount
+			console.log(`[积分抵扣] 商品 ${item.name} 使用 max_points_discount:`, perItemCap)
+		} else if (typeof item.maxPointsDeduction === 'number') {
+			// 兼容前端转换后的 maxPointsDeduction 字段
+			perItemCap = item.maxPointsDeduction
+			console.log(`[积分抵扣] 商品 ${item.name} 使用 maxPointsDeduction:`, perItemCap)
+		} else {
+			console.warn(`[积分抵扣] 商品 ${item.name} 没有积分抵扣上限字段，使用价格作为上限`)
+		}
+		
+		// 如果 max_points_discount 为 0 或未设置，则不限制（以单价为上限）
+		if (perItemCap <= 0) {
+			perItemCap = price
+			console.log(`[积分抵扣] 商品 ${item.name} 抵扣上限为0或未设置，使用价格作为上限:`, perItemCap)
+		}
 
-    if (perItemCap <= 0) return sum
-    perItemCap = Math.min(perItemCap, price)
-    const totalCap = Math.min(itemAmount, perItemCap * quantity)
-    return sum + totalCap
-  }, 0)
+		// 单件抵扣上限不能超过单价
+		perItemCap = Math.min(perItemCap, price)
+		
+		// 该商品的总抵扣上限 = 单件抵扣上限 × 数量（不超过商品总价）
+		const totalCap = Math.min(itemAmount, perItemCap * quantity)
+		
+		console.log(`[积分抵扣] 商品 ${item.name} 计算详情:`, {
+			'单价': price,
+			'数量': quantity,
+			'商品总价': itemAmount,
+			'单件抵扣上限': perItemCap,
+			'总抵扣上限': totalCap,
+			'max_points_discount原始值': item.max_points_discount,
+			'maxPointsDeduction原始值': item.maxPointsDeduction
+		})
+		
+		return sum + totalCap
+	}, 0)
 
-  const orderHalf = roundTo4(originalAmount.value * 0.5)
-  let finalLimit = 0
-  if (productCap > 0) {
-    finalLimit = roundTo4(Math.min(productCap, orderHalf))
-  }
-  const result = roundTo4(Math.min(userPoints.value, finalLimit))
-  return Math.max(0, result)
+	// 订单总金额的50%限制（仅作为最终上限，不覆盖商品设置）；精确到4位小数，避免 0.01 元订单无法抵扣
+	const orderHalf = roundTo4(originalAmount.value * 0.5)
+	
+	console.log(`[积分抵扣] 汇总计算:`, {
+		'商品抵扣上限汇总': productCap,
+		'订单金额50%': orderHalf,
+		'订单总金额': originalAmount.value,
+		'用户积分': userPoints.value
+	})
+	
+	// 最终限制：商品设置的抵扣上限优先，订单金额50%仅作为最终上限
+	let finalLimit = productCap
+	if (productCap > 0) {
+		finalLimit = roundTo4(Math.min(productCap, orderHalf))
+		console.log(`[积分抵扣] 商品设置了抵扣上限，使用商品设置的值（受订单50%限制）:`, finalLimit)
+	} else {
+		finalLimit = orderHalf
+		console.log(`[积分抵扣] 商品未设置抵扣上限，使用订单金额50%:`, finalLimit)
+	}
+	
+	// 最终可抵扣积分：取用户积分和最终限制的最小值，精确到4位小数（不再使用 Math.floor，否则 0.01 会变成 0）
+	const result = roundTo4(Math.min(userPoints.value, finalLimit))
+	console.log(`[积分抵扣] 最终限制:`, {
+		'商品抵扣上限': productCap,
+		'订单50%限制': orderHalf,
+		'最终限制': finalLimit,
+		'用户积分': userPoints.value,
+		'最终结果': result
+	})
+	return Math.max(0, result)
 })
 
 // 积分抵扣金额
@@ -433,103 +484,93 @@ const loadAvailableCoupons = async () => {
 
     const now = Date.now()
 
-    // 使用全部加载的数据进行过滤
-    availableCoupons.value = allCoupons
-      .filter((c) => {
-        const validTo = c.valid_to || c.validTo
-        if (validTo) {
-          const validToTime = new Date(validTo).getTime()
-          if (validToTime < now) return false
-        }
-        return true
-      })
-      .map((c) => ({
-        id: c.id,
-        name: c.name || `优惠券`,
-        useScope: c.use_scope || c.useScope || 'all',
-        applicable_product_type: c.applicable_product_type || c.applicableProductType || 'all',
-        amount: c.amount || 0,
-        minSpend: c.min_spend || c.minSpend || 0,
-        validTo: c.valid_to || c.validTo,
-        status: c.status
-      }))
-
-    console.log('可用优惠券数量:', availableCoupons.value.length)
-    
-  } catch (error) {
-    console.error('加载优惠券失败', error)
-    availableCoupons.value = []
-  } finally {
-    loadingCoupons.value = false
-    await nextTick()
-    
-    // 自动选中逻辑保持不变
-    if (selectedCouponCount.value === 0 && availableCount.value > 0) {
-      selectedCouponCount.value = availableCount.value
-    }
-  }
+		// 过滤出未使用且未过期的优惠券
+		availableCoupons.value = list
+		.filter((c) => {
+				// 只使用状态为unused的优惠券
+				if (c.status !== 'unused') return false
+				
+				// 检查是否过期
+				const validTo = c.valid_to || c.validTo
+				if (validTo) {
+					const validToTime = new Date(validTo).getTime()
+					if (validToTime < now) return false
+				}
+				
+			return true
+		})
+		.map((c) => {
+				// 映射为前端使用的格式
+			return {
+				id: c.id,
+					name: c.name || `优惠券`,
+					useScope: c.use_scope || c.useScope || 'all',
+					applicable_product_type: c.applicable_product_type || c.applicableProductType || 'all', // 适用商品范围
+					amount: c.amount || 0,
+					minSpend: c.min_spend || c.minSpend || 0,
+					validTo: c.valid_to || c.validTo,
+					status: c.status
+			}
+		})
+		
+		console.log('可用优惠券数量:', availableCoupons.value.length)
+	} catch (error) {
+		console.error('加载优惠券失败', error)
+		availableCoupons.value = []
+	}
 }
 
-// 积分输入处理
-const onPointsInput = () => {
-  if (!canUsePoints.value) {
-    pointsToUse.value = 0
-    return
-  }
-  if (userPoints.value === 0 || maxPointsDiscount.value === 0) {
-    pointsToUse.value = 0
-    return
-  }
-  if (pointsToUse.value > maxPointsDiscount.value) {
-    pointsToUse.value = maxPointsDiscount.value
-    uni.showToast({ title: `最多可抵扣 ${maxPointsDiscount.value} 积分`, icon: 'none' })
-  }
-  if (pointsToUse.value > userPoints.value) {
-    pointsToUse.value = userPoints.value
-    uni.showToast({ title: '积分不足', icon: 'none' })
-  }
-  if (pointsToUse.value < 0) pointsToUse.value = 0
-}
-
-// 滑块变化处理
-const onSliderChange = (e) => {
-  if (userPoints.value === 0 || maxPointsDiscount.value === 0) {
-    pointsToUse.value = 0
-    return
-  }
-  let value = e.detail.value
-  if (value > userPoints.value) {
-    value = userPoints.value
-    uni.showToast({ title: '积分不足', icon: 'none' })
-  }
-  if (value > maxPointsDiscount.value) value = maxPointsDiscount.value
-  pointsToUse.value = value
-}
-
-// 监听可用积分和最大可抵扣积分的变化
-watch([userPoints, maxPointsDiscount], () => {
-  if (userPoints.value === 0 || maxPointsDiscount.value === 0) {
-    pointsToUse.value = 0
-  }
-}, { immediate: true })
-
-// 监听可用张数，首次自动设为最大值（之后用户手动调整不再覆盖）
-watch(availableCount, (newCount) => {
-  // 若用户尚未手动选择（selectedCouponCount === 0）且存在可用券，则自动设为最大值
-  if (selectedCouponCount.value === 0 && newCount > 0) {
-    selectedCouponCount.value = newCount
-  }
-  // 若当前选择超过可用张数（如积分抵扣增加导致上限减少），则自动下调
-  if (selectedCouponCount.value > newCount) {
-    selectedCouponCount.value = newCount
-  }
-}, { immediate: true })
-// 使用最大积分
-const useMaxPoints = () => {
-  pointsToUse.value = Math.min(maxPointsDiscount.value, userPoints.value)
-  if (pointsToUse.value < maxPointsDiscount.value) {
-    uni.showToast({ title: '积分不足，已使用全部可用积分', icon: 'none' })
-  }
+// 优惠券是否适用于当前订单
+const isCouponValidForOrder = (coupon) => {
+	// 检查订单商品类型
+	const hasVipProduct = orderItems.value.some(item => 
+		item.isVip === true || 
+		item.is_vip === true || 
+		item.productType === 'vip' || 
+		item.product_type === 'vip'
+	)
+	const hasNormalProduct = orderItems.value.some(item => 
+		!(item.isVip === true || 
+		item.is_vip === true || 
+		item.productType === 'vip' || 
+		item.product_type === 'vip')
+	)
+	
+	// 根据 applicable_product_type 判断是否可用
+	const applicableType = coupon.applicable_product_type || coupon.applicableProductType || 'all'
+	if (applicableType === 'normal_only') {
+		// 只能用于普通商品，订单中不能有会员商品
+		if (hasVipProduct) {
+			return false
+		}
+	} else if (applicableType === 'member_only') {
+		// 只能用于会员商品，订单中必须有会员商品
+		if (!hasVipProduct) {
+			return false
+		}
+	}
+	// 'all' 可以用于所有商品，不需要额外检查
+	
+	// 兼容旧的 useScope 字段（如果 applicable_product_type 不存在）
+	let baseAmount = 0
+	if (coupon.useScope === 'vip_only') {
+		baseAmount = orderItems.value
+			.filter(item => item.isVip || item.productType === 'vip')
+			.reduce((sum, item) => sum + item.price * item.quantity, 0)
+	} else if (coupon.useScope === 'normal_only') {
+		baseAmount = orderItems.value
+			.filter(item => !(item.isVip || item.productType === 'vip'))
+			.reduce((sum, item) => sum + item.price * item.quantity, 0)
+	} else {
+		baseAmount = productTotal.value
+	}
+	
+	// 检查是否满足最低消费条件
+	if (coupon.minSpend > 0 && baseAmount < coupon.minSpend) {
+		return false
+	}
+	// 必须有商品才能使用
+	return baseAmount > 0
 }
 
 // 优惠券张数滑块变化
@@ -1089,81 +1130,179 @@ const submitOrder = async () => {
     })
 }
 
-// 加载用户积分
-const loadUserPoints = async () => {
-  try {
-    const res = await getPointsBalance()
-    let points = 0
-    if (res.data && typeof res.data === 'object') {
-      points = Number(res.data.member_points || 0)
-    } else if (res.member_points !== undefined) {
-      points = Number(res.member_points || 0)
-    }
-    userPoints.value = roundTo4(points)
-    if (points === 0) pointsToUse.value = 0
-    const userInfo = uni.getStorageSync('userInfo') || {}
-    userInfo.points = points
-    uni.setStorageSync('userInfo', userInfo)
-  } catch (error) {
-    console.error('[订单确认] 加载积分余额失败:', error)
-    const userInfo = uni.getStorageSync('userInfo') || {}
-    if (userInfo.points !== undefined) {
-      userPoints.value = Number(userInfo.points || 0)
-      if (userPoints.value === 0) pointsToUse.value = 0
-    }
-  }
-}
-
-const formatDateTime = (timestamp) => {
-  const date = new Date(timestamp)
-  const pad = (num) => String(num).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
 onLoad(async (options) => {
-  if (options.data) {
-    try {
-      const data = JSON.parse(decodeURIComponent(options.data))
-      if (data.source) {
-        orderSource.value = data.source
-      } else if (data.items && data.items.some(item => item.cart_id || item.cartId)) {
-        orderSource.value = 'cart'
-      } else {
-        orderSource.value = 'direct'
-      }
-
-      if (data.items && data.items.length > 0) {
-        const processedItems = []
-        const itemMap = new Map()
-        data.items.forEach((item) => {
-          const productId = item.id || item.product_id
-          const quantity = parseInt(item.quantity) || 1
-          if (itemMap.has(productId)) {
-            const existing = itemMap.get(productId)
-            existing.quantity += quantity
-          } else {
-            const processedItem = { ...item, quantity }
-            itemMap.set(productId, processedItem)
-            processedItems.push(processedItem)
-          }
-        })
-        orderItems.value = processedItems
-      } else {
-        orderItems.value = []
-      }
-    } catch (error) {
-      console.error('解析订单数据失败', error)
-      orderItems.value = []
-    }
-  } else {
-    orderItems.value = []
-  }
-
-  loadUserPoints()
-  loadAddress()
-  loadAvailableCoupons()
+	console.log('订单确认页 - 接收到的参数:', options)
+	
+	// 判断订单来源
+		if (options.data) {
+		// 从URL参数获取订单数据（直接购买）
+			try {
+				const data = JSON.parse(decodeURIComponent(options.data))
+				console.log('解析后的订单数据:', data)
+				
+				// 判断订单来源：如果有 source 字段，使用它；否则根据是否有 cart_id 判断
+				if (data.source) {
+					orderSource.value = data.source
+				} else if (data.items && data.items.some(item => item.cart_id || item.cartId)) {
+					// 如果商品有 cart_id，说明来自购物车
+					orderSource.value = 'cart'
+				} else {
+					// 默认是直接购买
+					orderSource.value = 'direct'
+				}
+				
+				console.log('订单来源:', orderSource.value)
+				
+			if (data.items && data.items.length > 0) {
+				// ========== 检查点2：订单确认页 - 接收到的原始数据 ==========
+				console.log('========== [检查点2] 订单确认页 - 接收数据 ==========')
+				console.log('[检查点2] 接收到的 data.items 数组长度:', data.items.length)
+				console.log('[检查点2] 接收到的 data.items 原始数据:', JSON.stringify(data.items, null, 2))
+				data.items.forEach((item, index) => {
+					console.log(`[检查点2] 商品 ${index + 1}:`, {
+						商品ID: item.id || item.product_id,
+						商品名称: item.name,
+						原始数量: item.quantity,
+						数量类型: typeof item.quantity,
+						parseInt后: parseInt(item.quantity) || 1
+					})
+				})
+				
+				// 确保数量是整数，并去重相同商品
+				const processedItems = []
+				const itemMap = new Map()
+				
+				data.items.forEach((item, index) => {
+					const productId = item.id || item.product_id
+					const quantity = parseInt(item.quantity) || 1
+					
+					console.log(`[检查点2] 处理商品 ${index + 1}:`, {
+						商品ID: productId,
+						原始数量: item.quantity,
+						处理后数量: quantity,
+						是否已存在: itemMap.has(productId)
+					})
+					
+					// 如果已存在相同商品，合并数量（理论上不应该发生，但为了安全）
+					if (itemMap.has(productId)) {
+						const existingItem = itemMap.get(productId)
+						const oldQuantity = parseInt(existingItem.quantity)
+						existingItem.quantity = oldQuantity + quantity
+						console.warn('========== [检查点2] ⚠️ 发现重复商品，合并数量 ==========')
+						console.warn('[检查点2] 商品ID:', productId)
+						console.warn('[检查点2] 原数量:', oldQuantity)
+						console.warn('[检查点2] 新增数量:', quantity)
+						console.warn('[检查点2] 合并后数量:', existingItem.quantity)
+						console.warn('========== [检查点2] 重复商品警告结束 ==========')
+					} else {
+						const processedItem = {
+							...item,
+							quantity: quantity // 确保数量是整数
+						}
+						itemMap.set(productId, processedItem)
+						processedItems.push(processedItem)
+					}
+				})
+				
+				orderItems.value = processedItems
+				console.log('[检查点2] 处理后的订单商品数量:', orderItems.value.length)
+				console.log('[检查点2] 处理后的订单商品:', orderItems.value.map(item => ({
+					商品ID: item.id || item.product_id,
+					商品名称: item.name,
+					数量: item.quantity,
+					价格: item.price
+				})))
+				console.log('========== [检查点2] 结束 ==========')
+					
+					// 调试：检查每个商品的积分抵扣上限
+					orderItems.value.forEach((item, index) => {
+						console.log(`订单商品 ${index + 1} 积分抵扣信息:`, {
+							商品名称: item.name,
+							max_points_discount: item.max_points_discount,
+							maxPointsDeduction: item.maxPointsDeduction,
+							价格: item.price,
+							数量: item.quantity,
+							是否会员商品: item.isVip || item.productType === 'vip'
+						})
+					})
+				} else {
+					console.warn('订单数据中没有商品')
+				orderItems.value = []
+				}
+			} catch (error) {
+				console.error('解析订单数据失败', error)
+				orderItems.value = []
+			}
+		} else {
+			console.warn('没有接收到订单数据')
+			orderItems.value = []
+		}
+	
+	// 加载用户积分余额
+	loadUserPoints()
+	
+	// 加载收货地址
+	loadAddress()
+	
+	// 加载可用优惠券
+	loadAvailableCoupons()
+	
+	// 输出计算结果用于调试
+	console.log('商品总金额:', productTotal.value)
+	console.log('配送费:', deliveryFee.value)
+	console.log('订单总金额:', originalAmount.value)
 })
 
+const formatDateTime = (timestamp) => {
+	const date = new Date(timestamp)
+	const pad = (num) => String(num).padStart(2, '0')
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/**
+ * 加载用户积分余额
+ */
+const loadUserPoints = async () => {
+	try {
+		const res = await getPointsBalance()
+		console.log('[订单确认] 积分余额API响应:', res)
+		
+		// 解析积分余额
+		let points = 0
+		if (res.data && typeof res.data === 'object') {
+			points = Number(res.data.member_points || 0)
+		} else if (res.member_points !== undefined) {
+			points = Number(res.member_points || 0)
+		}
+		
+		userPoints.value = roundTo4(points)
+		console.log('[订单确认] 用户积分余额:', userPoints.value)
+		
+		// 如果积分为0，确保滑块在最左边
+		if (points === 0) {
+			pointsToUse.value = 0
+		}
+		
+		// 更新本地存储
+		const userInfo = uni.getStorageSync('userInfo') || {}
+		userInfo.points = points
+		uni.setStorageSync('userInfo', userInfo)
+	} catch (error) {
+		console.error('[订单确认] 加载积分余额失败:', error)
+		// 如果API失败，尝试从本地存储获取
+		const userInfo = uni.getStorageSync('userInfo') || {}
+		if (userInfo.points !== undefined) {
+			const localPoints = Number(userInfo.points || 0)
+			userPoints.value = localPoints
+			// 如果积分为0，确保滑块在最左边
+			if (localPoints === 0) {
+				pointsToUse.value = 0
+			}
+		}
+	}
+}
+
+// 页面显示时刷新地址列表和优惠券
 onShow(() => {
   loadAddress()
   loadAvailableCoupons()

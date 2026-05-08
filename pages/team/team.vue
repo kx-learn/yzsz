@@ -703,8 +703,10 @@ const handleAvatarError = () => {
 onLoad(async () => {
 	try {
 		const storedUserInfo = uni.getStorageSync('userInfo') || {}
+		const resolvedId = storedUserInfo.id ?? storedUserInfo.user_id ?? storedUserInfo.userId ?? ''
 		userInfo.value = {
-			id: storedUserInfo.id || '',
+			id: resolvedId,
+			user_id: storedUserInfo.user_id ?? storedUserInfo.id ?? '',
 			avatar_path: storedUserInfo.avatar_path || '',
 			name: storedUserInfo.name || '未设置昵称',
 			member_level: storedUserInfo.member_level || 0,
@@ -797,9 +799,11 @@ const onRefresh = async () => {
 			member_level: storedUserInfo.member_level
 		})
 		
-		// 使用 Object.assign 确保响应式更新
+		// 使用 Object.assign 确保响应式更新（id 与 user_id 勿用 ||，避免合法数字 0 被抹掉）
+		const rid = storedUserInfo.id ?? storedUserInfo.user_id ?? storedUserInfo.userId ?? ''
 		Object.assign(userInfo.value, {
-			id: storedUserInfo.id || storedUserInfo.user_id || '',
+			id: rid,
+			user_id: storedUserInfo.user_id ?? storedUserInfo.id ?? '',
 			avatar_path: storedUserInfo.avatar_path || storedUserInfo.avatar || '',
 			name: storedUserInfo.name || '未设置昵称',
 			member_level: storedUserInfo.member_level || 0,
@@ -919,8 +923,10 @@ const onRestore = () => {
 onShow(async () => {
 	try {
 		const storedUserInfo = uni.getStorageSync('userInfo') || {}
+		const resolvedIdShow = storedUserInfo.id ?? storedUserInfo.user_id ?? storedUserInfo.userId ?? ''
 		userInfo.value = {
-			id: storedUserInfo.id || '',
+			id: resolvedIdShow,
+			user_id: storedUserInfo.user_id ?? storedUserInfo.id ?? '',
 			avatar_path: storedUserInfo.avatar_path || '',
 			name: storedUserInfo.name || '未设置昵称',
 			member_level: storedUserInfo.member_level || 0,
@@ -985,6 +991,9 @@ onShow(async () => {
 	
 	loadRewardStats()
 	loadRemainingPoints()
+	// Tab 页再次进入时只会走 onShow，须同步拉直推/团队统计，否则登录后或后台有数据仍显示空列表
+	loadTeamStats()
+	loadDirectMembers()
 })
 </script>
 

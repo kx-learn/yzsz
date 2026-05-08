@@ -249,7 +249,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { calculateCharityAmount } from '../../config/charity.js'
+import { calculateCharityFromTotalMinusPoints } from '../../config/charity.js'
 import { mapCouponWithTemplate, getCouponStatusText } from '../../utils/coupon.js'
 import { ensureMerchantOrder } from '../../utils/merchant.js'
 import { addLocalMessage } from '@/api/message.js'
@@ -480,8 +480,10 @@ const isFreeOrder = computed(() => {
 })
 
 
+// 公益 = (总价券前含运费 - 积分抵扣) × 1%；本页无积分抵扣
+const orderGrossForCharity = computed(() => parseFloat(productTotal.value) + parseFloat(deliveryFee.value))
 const charityAmount = computed(() => {
-  return calculateCharityAmount(totalAmount.value)
+  return calculateCharityFromTotalMinusPoints(orderGrossForCharity.value, 0)
 })
 
 const canSubmit = computed(() => {
@@ -807,6 +809,9 @@ const submitPayOrder = async () => {
     const completeOrderData = {
       items: orderItems.value,
       productTotal: productTotal.value,
+      deliveryFee: deliveryFee.value,
+      originalAmount: productTotal.value + deliveryFee.value,
+      pointsDiscount: 0,
       discountAmount: discountAmount.value,
       coupon: selectedCoupon.value,
       totalAmount: finalAmount

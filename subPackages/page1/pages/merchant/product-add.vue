@@ -149,7 +149,7 @@
           </picker>
         </view>
 
-        <view class="form-item" v-if="productForm.productType !== 'vip' && !hasSpecs">
+        <view class="form-item" v-if="!hasSpecs">
           <text class="form-label">销售价格 *</text>
           <input 
             v-model="productForm.price"
@@ -162,12 +162,12 @@
           <text class="form-hint">最多支持小数点后4位</text>
         </view>
         
-        <view class="form-item" v-if="productForm.productType !== 'vip' && hasSpecs">
+        <view class="form-item" v-if="hasSpecs">
           <text class="form-label">销售价格</text>
           <text class="form-hint">已设置规格，请在规格组合中设置价格</text>
         </view>
         
-        <view class="form-item" v-if="productForm.productType !== 'vip' && !hasSpecs">
+        <view class="form-item" v-if="!hasSpecs">
           <text class="form-label">原价（选填）</text>
           <input 
             v-model="productForm.originPrice"
@@ -178,14 +178,6 @@
             @blur="onOriginPriceBlur"
           />
           <text class="form-hint">最多支持小数点后4位</text>
-        </view>
-        
-        <view class="form-item" v-if="productForm.productType === 'vip'">
-          <text class="form-label">销售价格 *</text>
-          <view class="vip-price-display">
-            <text class="vip-price-text">¥1980.0000</text>
-            <text class="vip-price-hint">会员商品固定价格</text>
-          </view>
         </view>
         
         <view class="form-item">
@@ -347,15 +339,6 @@
               <view class="field-item">
                 <text class="field-label">价格 <text class="required-mark">*</text></text>
                 <input 
-                  v-if="productForm.productType === 'vip'"
-                  :value="1980"
-                  class="field-input vip-price-disabled"
-                  type="digit"
-                  disabled
-                  placeholder="会员商品固定价格1980"
-                />
-                <input 
-                  v-else
                   v-model="style.price"
                   class="field-input"
                   type="digit"
@@ -363,20 +346,10 @@
                   @input="(e) => onStylePriceInput(e, styleIndex)"
                   @blur="(e) => onStylePriceBlur(e, styleIndex)"
                 />
-                <text v-if="productForm.productType === 'vip'" class="vip-price-hint-small">会员商品固定价格</text>
               </view>
               <view class="field-item">
                 <text class="field-label">原价（选填）</text>
                 <input 
-                  v-if="productForm.productType === 'vip'"
-                  :value="0"
-                  class="field-input vip-price-disabled"
-                  type="digit"
-                  disabled
-                  placeholder="会员商品无原价"
-                />
-                <input 
-                  v-else
                   v-model="style.originalPrice"
                   class="field-input"
                   type="digit"
@@ -531,25 +504,9 @@ const onProductTypeChange = (e) => {
   productForm.value.productType = type
   productForm.value.isVip = type === 'vip'
 
-  // 会员商品不允许积分抵扣，上限强制为0
+  // 会员商品不允许积分抵扣，上限强制为0（价格与普通商品一样由商家填写）
   if (type === 'vip') {
     productForm.value.maxPointsDeduction = 0
-    // 会员商品默认价格为1980元
-    productForm.value.price = '1980.0000'
-    productForm.value.originPrice = ''
-    
-    // 更新所有已有样式的价格为1980，原价为0
-    if (styles.value && styles.value.length > 0) {
-      styles.value.forEach(style => {
-        style.price = '1980'
-        style.originalPrice = '0'
-      })
-    }
-  } else {
-    // 普通商品如果价格是1980，清空（避免误操作）
-    if (productForm.value.price === '1980.0000' || productForm.value.price === '1980') {
-      productForm.value.price = ''
-    }
   }
 }
 
@@ -1247,8 +1204,8 @@ const removeSpec = (specIndex) => {
 const addStyle = () => {
   const newStyle = {
     specifications: {},
-    price: productForm.value.productType === 'vip' ? '1980' : '', // 会员商品默认价格为1980
-    originalPrice: productForm.value.productType === 'vip' ? '0' : '', // 会员商品原价为0
+    price: '',
+    originalPrice: '',
     stock: 0
   }
   
@@ -1273,12 +1230,6 @@ const removeStyle = (styleIndex) => {
  * 样式价格输入处理
  */
 const onStylePriceInput = (e, styleIndex) => {
-  // 如果是会员商品，不允许修改价格
-  if (productForm.value.productType === 'vip') {
-    styles.value[styleIndex].price = '1980'
-    return
-  }
-  
   let value = e.detail.value
   if (value === '') {
     styles.value[styleIndex].price = ''
@@ -1314,12 +1265,6 @@ const onStylePriceBlur = (e, styleIndex) => {
  * 样式原价输入处理
  */
 const onStyleOriginalPriceInput = (e, styleIndex) => {
-  // 如果是会员商品，不允许修改原价（固定为0）
-  if (productForm.value.productType === 'vip') {
-    styles.value[styleIndex].originalPrice = '0'
-    return
-  }
-  
   let value = e.detail.value
   if (value === '') {
     styles.value[styleIndex].originalPrice = ''
@@ -1392,7 +1337,8 @@ const publishProduct = async () => {
     }
   } else {
     // 没有规格时，商品价格和库存必填
-    if (!productForm.value.price || productForm.value.price <= 0) {
+    const mainPrice = parseFloat(productForm.value.price)
+    if (!productForm.value.price || Number.isNaN(mainPrice) || mainPrice <= 0) {
       uni.showToast({ title: '请输入正确的价格', icon: 'none' })
       return
     }
@@ -1418,7 +1364,9 @@ const publishProduct = async () => {
     if (productForm.value.maxPointsDeduction == null || productForm.value.maxPointsDeduction < 0) {
       productForm.value.maxPointsDeduction = 0
     }
-    if (productForm.value.maxPointsDeduction > productForm.value.price) {
+    const cap = parseFloat(String(productForm.value.price || 0))
+    const maxPts = parseFloat(String(productForm.value.maxPointsDeduction ?? 0))
+    if (!Number.isNaN(cap) && !Number.isNaN(maxPts) && maxPts > cap) {
       uni.showToast({ title: '积分抵扣上限不能大于商品价格', icon: 'none' })
       return
     }
@@ -1467,17 +1415,11 @@ const publishProduct = async () => {
               }
             })
             
-            // 价格：会员商品固定为1980，普通商品使用样式设置的价格
-            const skuPrice = productForm.value.productType === 'vip' 
-              ? 1980 
-              : (parseFloat(style.price) || 0)
-            
-            // 原价：会员商品固定为0，普通商品使用样式设置的原价
-            const skuOriginalPrice = productForm.value.productType === 'vip' 
-              ? 0 
-              : (style.originalPrice && style.originalPrice !== '' 
-                ? parseFloat(style.originalPrice) || 0 
-                : 0)
+            const skuPrice = parseFloat(style.price) || 0
+            const skuOriginalPrice =
+              style.originalPrice && style.originalPrice !== ''
+                ? parseFloat(style.originalPrice) || 0
+                : 0
             
             // 库存：使用样式设置的库存
             const skuStock = parseInt(style.stock) || 0
@@ -1564,10 +1506,11 @@ const publishProduct = async () => {
           // 没有规格，生成默认SKU（包含空的 specifications 对象）
           return [{
             sku_code: `DEFAULT-${Date.now()}`,
-            price: productForm.value.productType === 'vip' ? 1980 : parseFloat(productForm.value.price || 0),
-            original_price: productForm.value.productType === 'vip' ? 0 : (productForm.value.originPrice && productForm.value.originPrice > 0 
-              ? parseFloat(productForm.value.originPrice) 
-              : 0), // API要求是数字类型，不是null
+            price: parseFloat(productForm.value.price || 0) || 0,
+            original_price:
+              productForm.value.originPrice && String(productForm.value.originPrice).trim() !== ''
+                ? parseFloat(productForm.value.originPrice) || 0
+                : 0,
             stock: parseInt(productForm.value.stock || 0),
             specifications: {} // 没有规格时，也包含 specifications 字段，值为空对象
           }]
@@ -2671,27 +2614,6 @@ onMounted(() => {
   color: #333;
 }
 
-.vip-price-display {
-  padding: 24rpx;
-  border: 2rpx solid #ffd700;
-  border-radius: 12rpx;
-  background: linear-gradient(135deg, #fff9e6, #fff5d6);
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.vip-price-text {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ff9800;
-}
-
-.vip-price-hint {
-  font-size: 22rpx;
-  color: #999;
-}
-
 .form-textarea {
   padding: 24rpx;
   border: 2rpx solid #e0e0e0;
@@ -3329,20 +3251,6 @@ onMounted(() => {
   font-size: 28rpx;
   color: white;
   font-weight: 500;
-}
-
-.vip-price-disabled {
-  background: #f5f5f5 !important;
-  color: #999 !important;
-  border-color: #e0e0e0 !important;
-  opacity: 0.7;
-}
-
-.vip-price-hint-small {
-  font-size: 22rpx;
-  color: #999;
-  margin-left: 12rpx;
-  font-style: italic;
 }
 
 .checkbox-wrapper {

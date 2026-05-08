@@ -136,22 +136,24 @@ export const getPhone = (code, userId) => {
 }
 
 /**
-  // 用于补充商户判定逻辑（调用 /user/is-merchant）
-  import { checkIsMerchant } from '@/api/auth.js'
- * 获取后端返回的实际手机号（从user/mobile接口）
- * @returns {Promise<String>} 返回实际手机号
+ * 获取当前用户用于调后端的 11 位手机号：优先本地 userInfo，避免 GET /user/mobile 未部署时无意义 404。
+ * @returns {Promise<String>}
  */
 const getActualMobileFromBackend = async () => {
   try {
     const userInfo = uni.getStorageSync('userInfo') || {}
+    const localFirst = String(userInfo.mobile || userInfo.phone || '').trim()
+    if (/^\d{11}$/.test(localFirst)) {
+      return localFirst
+    }
+
     const userId = userInfo.user_id || userInfo.id || userInfo.userId || userInfo.uid
-    
+
     if (!userId) {
       console.error('[地址API] 错误：缺少 user_id，无法获取实际手机号')
       throw new Error('缺少用户ID，请先登录')
     }
-    
-    // 调用后端接口获取实际手机号
+
     const res = await getMobileByUserId(userId, 'gm2025')
     console.log('[地址API] 从后端获取手机号响应:', res)
     
@@ -707,7 +709,12 @@ export const getMobileByUserId = (userId, key = 'gm2025') => {
     console.log('[获取手机号API] 接口响应成功:', res)
     return res
   }).catch(error => {
-    console.error('[获取手机号API] 接口调用失败:', error)
+    const code = error && (error.statusCode ?? error.code)
+    if (code === 404) {
+      console.warn('[获取手机号API] 接口不存在或未开放(404)，将依赖本地 userInfo.mobile:', error.message || '')
+    } else {
+      console.error('[获取手机号API] 接口调用失败:', error)
+    }
     throw error
   })
 }

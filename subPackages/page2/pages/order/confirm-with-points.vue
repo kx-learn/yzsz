@@ -76,9 +76,10 @@
           :value="pointsToUse" 
           :max="maxPointsDiscount > 0 ? maxPointsDiscount : 1"
           :min="0"
-          :step="0.0001"
+          :step="maxPointsDiscount > 0 && maxPointsDiscount < 1 ? 0.0001 : 0.01"
           activeColor="#ff9800"
           :disabled="userPoints === 0 || maxPointsDiscount === 0"
+          @changing="onSliderChange"
           @change="onSliderChange"
         />
       </view>
@@ -212,7 +213,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { calculateCharityAmount } from '../../config/charity.js'
+import { calculateCharityFromTotalMinusPoints } from '../../config/charity.js'
 import { ensureMerchantOrder, evaluateDeliveryForAddress } from '../../utils/merchant.js'
 import { getMyCoupons } from '@/api/coupon.js'
 import { createOrder } from '@/api/order.js'
@@ -382,6 +383,44 @@ const maxPointsDiscount = computed(() => {
 // 积分抵扣金额
 const pointsDiscount = computed(() => pointsToUse.value)
 
+/** 将「使用积分」限制在 [0, min(用户积分, 规则上限)] */
+const clampPointsToUse = (raw) => {
+	const max = maxPointsDiscount.value
+	if (max <= 0) return 0
+	const n = roundTo4(Number(raw) || 0)
+	return roundTo4(Math.max(0, Math.min(n, max)))
+}
+
+const onSliderChange = (e) => {
+	const v = e?.detail?.value
+	pointsToUse.value = clampPointsToUse(v)
+}
+
+const onPointsInput = (e) => {
+	const raw = e?.detail?.value ?? e?.target?.value ?? ''
+	const s = String(raw).trim()
+	if (s === '' || s === '.') {
+		pointsToUse.value = 0
+		return
+	}
+	const n = parseFloat(s)
+	if (Number.isNaN(n)) {
+		pointsToUse.value = 0
+		return
+	}
+	pointsToUse.value = clampPointsToUse(n)
+}
+
+const useMaxPoints = () => {
+	pointsToUse.value = clampPointsToUse(maxPointsDiscount.value)
+}
+
+watch(maxPointsDiscount, (maxVal) => {
+	if (pointsToUse.value > maxVal) {
+		pointsToUse.value = roundTo4(Math.max(0, maxVal))
+	}
+})
+
 // 可用的1元券列表（按过期时间升序）
 const availableOneYuanCoupons = computed(() => {
   const filtered = availableCoupons.value
@@ -424,12 +463,12 @@ const actualAmount = computed(() => {
 const isFreeOrder = computed(() => actualAmount.value <= 0)
 
 // 公益贡献金额
+// 公益 = (总价券前含运费 - 积分抵扣) × 1%，与优惠券抵扣无关
 const charityAmount = computed(() => {
-  return calculateCharityAmount(actualAmount.value)
+  return calculateCharityFromTotalMinusPoints(originalAmount.value, pointsDiscount.value)
 })
 // =================================
 
-// 加载可用优惠券
 // 加载可用优惠券
 const loadAvailableCoupons = async () => {
   loadingCoupons.value = true
@@ -481,40 +520,39 @@ const loadAvailableCoupons = async () => {
 
     const now = Date.now()
 
-		// 过滤出未使用且未过期的优惠券
-		availableCoupons.value = list
-		.filter((c) => {
-				// 只使用状态为unused的优惠券
-				if (c.status !== 'unused') return false
-				
-				// 检查是否过期
-				const validTo = c.valid_to || c.validTo
-				if (validTo) {
-					const validToTime = new Date(validTo).getTime()
-					if (validToTime < now) return false
-				}
-				
-			return true
-		})
-		.map((c) => {
-				// 映射为前端使用的格式
-			return {
-				id: c.id,
-					name: c.name || `优惠券`,
-					useScope: c.use_scope || c.useScope || 'all',
-					applicable_product_type: c.applicable_product_type || c.applicableProductType || 'all', // 适用商品范围
-					amount: c.amount || 0,
-					minSpend: c.min_spend || c.minSpend || 0,
-					validTo: c.valid_to || c.validTo,
-					status: c.status
-			}
-		})
-		
-		console.log('可用优惠券数量:', availableCoupons.value.length)
-	} catch (error) {
-		console.error('加载优惠券失败', error)
-		availableCoupons.value = []
-	}
+    // 过滤出未使用且未过期的优惠券（分页合并结果为 allCoupons）
+    availableCoupons.value = allCoupons
+      .filter((c) => {
+        if (c.status !== 'unused') return false
+
+        const validTo = c.valid_to || c.validTo
+        if (validTo) {
+          const validToTime = new Date(validTo).getTime()
+          if (validToTime < now) return false
+        }
+
+        return true
+      })
+      .map((c) => {
+        return {
+          id: c.id,
+          name: c.name || `优惠券`,
+          useScope: c.use_scope || c.useScope || 'all',
+          applicable_product_type: c.applicable_product_type || c.applicableProductType || 'all',
+          amount: c.amount || 0,
+          minSpend: c.min_spend || c.minSpend || 0,
+          validTo: c.valid_to || c.validTo,
+          status: c.status
+        }
+      })
+
+    console.log('可用优惠券数量:', availableCoupons.value.length)
+  } catch (error) {
+    console.error('加载优惠券失败', error)
+    availableCoupons.value = []
+  } finally {
+    loadingCoupons.value = false
+  }
 }
 
 // 优惠券是否适用于当前订单

@@ -13,9 +13,9 @@
         </view>
         <view class="stat-item">
           <text class="stat-value">
-            {{ monthUsed > 0 ? '-' + Number(monthUsed).toFixed(4) : Number(monthUsed).toFixed(4) }}
+            {{ monthSubsidyOut > 0 ? '-' + Number(monthSubsidyOut).toFixed(4) : Number(monthSubsidyOut).toFixed(4) }}
           </text>
-          <text class="stat-label">本月使用</text>
+          <text class="stat-label">本月日补贴支出</text>
         </view>
       </view>
     </view>
@@ -27,6 +27,7 @@
         <text class="rule-title">积分规则</text>
       </view>
       <text class="rule-text">• 订单完成后，消费者按消费额的100%发放积分，商家按消费额的20%发放积分。</text>
+      <text class="rule-text">• 顶部「本月获得」= 本月流水里进账（正数）之和；「本月日补贴支出」= 本月流水里判定为日补贴的支出（负数）绝对值之和。</text>
       <text class="rule-text">• 积分可用于平台活动和兑换</text>
       <text class="rule-text">• 积分永久有效，不会过期</text>
     </view>
@@ -104,7 +105,8 @@ import { getPoolFlow } from '@/api/reports.js'
 
 const currentPoints = ref(0)
 const monthEarned = ref(0)
-const monthUsed = ref(0)
+/** 本月日补贴支出之和（仅统计匹配日补贴的负数流水） */
+const monthSubsidyOut = ref(0)
 const currentFilter = ref('all')
 const loading = ref(false)
 const page = ref(1)
@@ -130,6 +132,31 @@ const filteredLogs = computed(() => {
   }
   return pointsLogs.value
 })
+
+/**
+ * 是否为本月「日补贴」相关支出流水（负数），用于「本月日补贴支出」汇总。
+ * 依赖备注/类型等文案；若后端有固定枚举可再补充字段判断。
+ */
+const isDailySubsidyExpenseItem = (item) => {
+  const amount = Number(item.change_amount ?? item.amount ?? item.points ?? item.balance_change ?? 0)
+  if (!(amount < 0)) return false
+  const parts = [
+    item.remark,
+    item.reason,
+    item.description,
+    item.type,
+    item.flow_type,
+    item.biz_type,
+    item.business_type,
+    item.category,
+    item.flow_subtype,
+    item.source
+  ]
+    .filter((v) => v != null && v !== '')
+    .map((v) => String(v))
+  const text = parts.join(' ')
+  return /日补|每日补|日補貼|daily[\s_-]*subsidy|subsidy[\s_-]*daily|daily_subsidy|日\s*补贴/i.test(text)
+}
 
 /**
  * 获取本月日期范围
@@ -242,7 +269,8 @@ const loadPointsData = async (isLoadMore = false) => {
         changeAmount: amount,
         reason: reason,
         createdAt: time,
-        relatedOrder: orderNo
+        relatedOrder: orderNo,
+        isDailySubsidyExpense: isDailySubsidyExpenseItem(item)
       }
     })
     
@@ -280,18 +308,18 @@ const loadPointsData = async (isLoadMore = false) => {
       page.value++ // 加载更多后，页码递增
     }
     
-    // 计算本月统计（基于所有已加载的数据）
+    // 本月获得：本月进账（正数）之和；本月日补贴支出：仅日补贴类支出（负数）绝对值之和
     const income = pointsLogs.value
-      .filter(log => log.changeAmount > 0)
+      .filter((log) => log.changeAmount > 0)
       .reduce((sum, log) => sum + Number(log.changeAmount), 0)
-    const expense = pointsLogs.value
-      .filter(log => log.changeAmount < 0)
+    const subsidyExpense = pointsLogs.value
+      .filter((log) => log.isDailySubsidyExpense)
       .reduce((sum, log) => sum + Number(log.changeAmount), 0)
-    
+
     monthEarned.value = Number(income.toFixed(4))
-    monthUsed.value = Number(Math.abs(expense).toFixed(4))
-    
-    console.log('[平台积分流水] 本月统计 - 获得:', monthEarned.value, '使用:', monthUsed.value)
+    monthSubsidyOut.value = Number(Math.abs(subsidyExpense).toFixed(4))
+
+    console.log('[平台积分流水] 本月统计 - 获得:', monthEarned.value, '日补贴支出:', monthSubsidyOut.value)
     console.log('[平台积分流水] 当前已加载', pointsLogs.value.length, '条记录')
   } catch (error) {
     console.error('[平台积分流水] 加载失败:', error)
@@ -302,7 +330,7 @@ const loadPointsData = async (isLoadMore = false) => {
     pointsLogs.value = []
     currentPoints.value = 0
     monthEarned.value = 0
-    monthUsed.value = 0
+    monthSubsidyOut.value = 0
   } finally {
     loading.value = false
   }

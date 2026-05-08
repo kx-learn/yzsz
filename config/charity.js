@@ -3,7 +3,7 @@
  */
 
 export const CHARITY_CONFIG = {
-  // 公益贡献比例（订单金额的1%）
+  // 公益比例；基数为 (券前总价 - 积分抵扣)，见 calculateCharityFromTotalMinusPoints
   contributionRate: 0.01,
   
   // 播报消息刷新间隔（毫秒）
@@ -23,10 +23,23 @@ export const CHARITY_CONFIG = {
 }
 
 /**
- * 计算订单公益贡献金额
+ * 计算订单公益贡献金额（直接对传入基数按比例）
  */
 export const calculateCharityAmount = (orderAmount) => {
   return (parseFloat(orderAmount) * CHARITY_CONFIG.contributionRate).toFixed(4)
+}
+
+/**
+ * 公益金额 = (总价 - 积分抵扣) × contributionRate
+ * 总价为券前订单金额（含运费）；优惠券不影响公益基数。
+ * @param {number|string} totalAmount 总价（元）
+ * @param {number|string} [pointsDiscount=0] 积分抵扣金额（元）
+ */
+export const calculateCharityFromTotalMinusPoints = (totalAmount, pointsDiscount = 0) => {
+  const total = parseFloat(totalAmount) || 0
+  const points = parseFloat(pointsDiscount) || 0
+  const base = Math.max(0, total - points)
+  return (base * CHARITY_CONFIG.contributionRate).toFixed(4)
 }
 
 /**

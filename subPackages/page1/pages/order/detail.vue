@@ -60,11 +60,18 @@
 						<text class="iconfont icon-dingwei"></text>
 					</view>
 					<view class="address-info">
-						<view class="user-row">
+						<view class="consignee-row" v-if="order.address.name">
+							<text class="addr-meta-label">收货人</text>
 							<text class="user-name">{{ order.address.name }}</text>
+						</view>
+						<view class="consignee-row" v-if="order.address.phone">
+							<text class="addr-meta-label">联系电话</text>
 							<text class="user-phone">{{ order.address.phone }}</text>
 						</view>
-						<text class="address-text">{{ order.address.detail }}</text>
+						<view class="consignee-row consignee-row-full" v-if="order.address.detail">
+							<text class="addr-meta-label">收货地址</text>
+							<text class="address-text">{{ order.address.detail }}</text>
+						</view>
 					</view>
 				</view>
 			</view>
@@ -76,10 +83,18 @@
 						<text class="iconfont icon-dingwei"></text>
 					</view>
 					<view class="address-info">
-						<view class="user-row">
-							<text class="user-name">商家地址</text>
+						<view class="consignee-row" v-if="order.address.name">
+							<text class="addr-meta-label">收货人</text>
+							<text class="user-name">{{ order.address.name }}</text>
 						</view>
-						<text class="address-text">{{ order.merchantAddress || '暂无' }}</text>
+						<view class="consignee-row" v-if="order.address.phone">
+							<text class="addr-meta-label">联系电话</text>
+							<text class="user-phone">{{ order.address.phone }}</text>
+						</view>
+						<view class="consignee-row consignee-row-full">
+							<text class="addr-meta-label">自提地址</text>
+							<text class="address-text">{{ order.merchantAddress || '暂无' }}</text>
+						</view>
 					</view>
 				</view>
 			</view>
@@ -192,6 +207,14 @@
 				<view class="info-row" v-if="order.payTime">
 					<text class="label">付款时间</text>
 					<text class="value">{{ order.payTime }}</text>
+				</view>
+				<view class="info-row" v-if="order.address.name">
+					<text class="label">收货人</text>
+					<text class="value">{{ order.address.name }}</text>
+				</view>
+				<view class="info-row" v-if="order.address.phone">
+					<text class="label">联系电话</text>
+					<text class="value">{{ order.address.phone }}</text>
 				</view>
 				<view class="info-row" v-if="order.logisticsNo">
 					<text class="label">快递单号</text>
@@ -375,7 +398,119 @@ const copyLogisticsNo = () => {
 	}
 }
 
+/**
+ * 从订单详情原始数据归一收货人、电话、详细地址（兼容根级字段与 address 嵌套对象）
+ */
+function buildShippingAddressFromOrder(orderData) {
+	const empty = { name: '', phone: '', detail: '', latitude: null, longitude: null }
+	if (!orderData || typeof orderData !== 'object') return empty
 
+	// 与商户端一致：详情接口可能在包裹层返回 user（下单人联系信息）
+	const detailUser =
+		orderData._detailUser ||
+		(orderData.user && typeof orderData.user === 'object' && !Array.isArray(orderData.user) ? orderData.user : null)
+
+	const nameFromRoot = String(
+		orderData.consignee_name ||
+			orderData.consigneeName ||
+			orderData.customer_name ||
+			orderData.customerName ||
+			orderData.receiver_name ||
+			orderData.receiverName ||
+			orderData.user_name ||
+			orderData.userName ||
+			orderData.buyer_name ||
+			orderData.buyerName ||
+			orderData.contact_name ||
+			orderData.contactName ||
+			orderData.recipient_name ||
+			orderData.recipientName ||
+			(detailUser && (detailUser.name || detailUser.nickname || detailUser.real_name || detailUser.username)) ||
+			''
+	).trim()
+	const phoneFromRoot = String(
+		orderData.consignee_phone ||
+			orderData.consigneePhone ||
+			orderData.customer_phone ||
+			orderData.customerPhone ||
+			orderData.receiver_phone ||
+			orderData.receiverPhone ||
+			orderData.contact_phone ||
+			orderData.contactPhone ||
+			orderData.mobile ||
+			orderData.phone ||
+			orderData.buyer_phone ||
+			orderData.buyerPhone ||
+			orderData.buyer_mobile ||
+			orderData.buyerMobile ||
+			orderData.user_phone ||
+			orderData.userPhone ||
+			orderData.user_mobile ||
+			orderData.userMobile ||
+			(detailUser && (detailUser.mobile || detailUser.phone || detailUser.telephone)) ||
+			''
+	).trim()
+
+	const raw = orderData.address || orderData.custom_address || orderData.receiver_address || null
+	let name = ''
+	let phone = ''
+	let detail = ''
+	let latitude = orderData.destination_lat ?? orderData.dest_lat ?? null
+	let longitude = orderData.destination_lng ?? orderData.dest_lng ?? null
+
+	if (raw && typeof raw === 'object') {
+		name = String(
+			raw.name ||
+				raw.consignee_name ||
+				raw.consigneeName ||
+				raw.receiver_name ||
+				raw.receiverName ||
+				raw.contact_name ||
+				raw.contactName ||
+				raw.recipient_name ||
+				''
+		).trim()
+		phone = String(
+			raw.phone ||
+				raw.mobile ||
+				raw.tel ||
+				raw.consignee_phone ||
+				raw.consigneePhone ||
+				raw.contact_phone ||
+				raw.contactPhone ||
+				''
+		).trim()
+		const parts = [raw.province, raw.city, raw.district, raw.detail, raw.address, raw.street].filter(
+			(x) => x != null && String(x).trim() !== ''
+		)
+		if (parts.length) {
+			detail = parts.map((x) => String(x).trim()).join('')
+		} else if (typeof raw.full_address === 'string' && raw.full_address.trim()) {
+			detail = raw.full_address.trim()
+		}
+		latitude = raw.latitude ?? raw.lat ?? latitude
+		longitude = raw.longitude ?? raw.lng ?? raw.lon ?? longitude
+	} else if (typeof raw === 'string' && raw.trim()) {
+		detail = raw.trim()
+	}
+
+	if (!name) name = nameFromRoot
+	if (!phone) phone = phoneFromRoot
+	if (!detail) {
+		detail = String(
+			orderData.shipping_address ||
+				orderData.shippingAddress ||
+				orderData.address_detail ||
+				orderData.addressDetail ||
+				orderData.detail ||
+				orderData.full_address ||
+				orderData.fullAddress ||
+				''
+		).trim()
+	}
+
+	return { name, phone, detail, latitude, longitude }
+}
 
 /**
  * 加载订单详情
@@ -398,19 +533,38 @@ const loadOrderDetail = async (orderNumber) => {
 		const res = await getOrderDetail(orderNumber)
 		uni.hideLoading()
 		
-		// 处理不同的响应格式
+		// 处理不同的响应格式（与商户端 order-detail 对齐：支持 data.order_info + data.user + data.address）
 		let orderData = null
+		const mergeDetailWrapper = (payload) => {
+			if (!payload || typeof payload !== 'object') return null
+			if (payload.order_info && typeof payload.order_info === 'object') {
+				const inner = { ...payload.order_info }
+				if (!inner.items && payload.items) inner.items = payload.items
+				if (!inner.address && payload.address) inner.address = payload.address
+				if (!inner.custom_address && payload.custom_address) inner.custom_address = payload.custom_address
+				if (payload.user && typeof payload.user === 'object') {
+					inner._detailUser = payload.user
+				}
+				return inner
+			}
+			return payload
+		}
+
 		if (res.data) {
-			orderData = res.data
+			orderData = mergeDetailWrapper(res.data) || res.data
 		} else if (res.order_info || res['order info']) {
-			// 处理带有 "order_info" 或 "order info" 字段的响应格式
-			orderData = res.order_info || res['order info']
-			// 如果 items 在顶层，也需要合并进来
+			orderData = { ...(res.order_info || res['order info']) }
 			if (res.items) {
 				orderData.items = res.items
 			}
+			if (res.address) {
+				orderData.address = orderData.address || res.address
+			}
+			if (res.user && typeof res.user === 'object') {
+				orderData._detailUser = res.user
+			}
 		} else if (typeof res === 'object' && res.id) {
-			orderData = res
+			orderData = mergeDetailWrapper(res) || res
 		} else {
 			console.error('无法解析的订单数据格式:', res)
 			throw new Error('订单数据格式错误')
@@ -523,14 +677,7 @@ const loadOrderDetail = async (orderNumber) => {
 			logisticsTraces: orderData.logistics_traces || orderData.logisticsTraces || [],
 			deliveryWay: deliveryWay, // 配送方式：'platform' 商家配送，'pickup' 自提
 			merchantAddress: orderData.merchant_address || orderData.merchantAddress || orderData.return_address || orderData.returnAddress || '', // 商家地址（自提时使用）
-			address: orderData.address || orderData.custom_address || {
-				name: orderData.consignee_name || orderData.name || '',
-				phone: orderData.consignee_phone || orderData.phone || '',
-				detail: orderData.shipping_address || orderData.address_detail || orderData.detail || '',
-				// 地址经纬度（如果后端返回）
-				latitude: orderData.address?.latitude || orderData.address?.lat || orderData.destination_lat || orderData.dest_lat || null,
-				longitude: orderData.address?.longitude || orderData.address?.lng || orderData.address?.lon || orderData.destination_lng || orderData.dest_lng || null
-			},
+			address: buildShippingAddressFromOrder(orderData),
 			products: await Promise.all((orderData.items || orderData.products || []).map(async (item) => {
 
 				
@@ -776,7 +923,7 @@ if (order.value.status === 'pending_recv' || order.value.status === 'completed')
 			logisticsNo: '',
 			logisticsTime: '',
 			logisticsTraces: [],
-			address: {},
+			address: { name: '', phone: '', detail: '' },
 			products: []
 		}
 	} finally {
@@ -1927,6 +2074,37 @@ onShow(() => {
 	display: flex;
 	align-items: baseline;
 	gap: 16rpx;
+}
+
+.consignee-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 16rpx;
+	margin-bottom: 4rpx;
+}
+
+.consignee-row-full {
+	flex-direction: column;
+	gap: 8rpx;
+}
+
+.consignee-row-full .addr-meta-label {
+	width: auto;
+}
+
+.addr-meta-label {
+	flex-shrink: 0;
+	width: 132rpx;
+	font-size: 26rpx;
+	color: #999;
+	line-height: 1.5;
+}
+
+.consignee-row .user-name,
+.consignee-row .user-phone,
+.consignee-row .address-text {
+	flex: 1;
+	min-width: 0;
 }
 
 .user-name {

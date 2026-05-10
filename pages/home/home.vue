@@ -128,6 +128,7 @@ import { getPublicWelfareFlow } from '@/api/reports.js'
 import { bindReferrer, getMobileByUserId } from '@/api/user.js'
 import { getPendingReferrer } from '@/utils/referral.js'
 import config from '@/utils/config.js'
+import { normalizeRemoteUrl } from '@/utils/imageUrl.js'
 
 const bannerList = ref([])
 const vipProducts = ref([])
@@ -174,7 +175,7 @@ const loadBanners = async () => {
 		// 转换为轮播图格式
 		bannerList.value = bannerImages.map((imageUrl, index) => {
 			// 处理图片URL（如果是相对路径，添加服务器地址）
-			let processedUrl = imageUrl
+			let processedUrl = normalizeRemoteUrl(imageUrl)
 			if (processedUrl && !processedUrl.startsWith('http://') && !processedUrl.startsWith('https://') && !processedUrl.startsWith('/static')) {
 				if (processedUrl.startsWith('/')) {
 					processedUrl = `${config.baseURL}${processedUrl}`
@@ -233,9 +234,10 @@ const formatProduct = (product) => {
 	// 处理图片：优先使用 main_image，然后尝试其他字段
 	const processImageUrl = (img) => {
 		if (!img) return null
-		if (img.startsWith('http://') || img.startsWith('https://')) return img
-		if (img.startsWith('/static')) return img
-		const imagePath = img.startsWith('/') ? img : `/${img}`
+		const fixed = normalizeRemoteUrl(img)
+		if (fixed.startsWith('http://') || fixed.startsWith('https://')) return fixed
+		if (fixed.startsWith('/static')) return fixed
+		const imagePath = fixed.startsWith('/') ? fixed : `/${fixed}`
 		return `${config.baseURL}${imagePath}`
 	}
 	

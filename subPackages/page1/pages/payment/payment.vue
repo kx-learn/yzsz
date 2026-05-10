@@ -94,7 +94,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { calculateCharityAmount } from '../../config/charity.js'
+import { calculateCharityFromTotalMinusPoints, calculateCharityAmount } from '../../config/charity.js'
 import { recordMerchantSale } from '../../utils/merchant.js'
 import { updatePoints } from '@/api/points.js'
 import { addLocalMessage } from '@/api/message.js'
@@ -115,9 +115,14 @@ const paymentData = ref({
   coupon: null
 })
 
-// 计算公益贡献金额
+// 公益 = (总价券前 - 积分抵扣) × 1%；与优惠券无关（由下单页传入 originalAmount / pointsDiscount）
 const charityAmount = computed(() => {
-  return calculateCharityAmount(paymentData.value.amount)
+  const od = paymentData.value.orderData || {}
+  if (od.originalAmount != null && od.originalAmount !== '') {
+    const pts = Number(od.pointsDiscount ?? od.points_to_use ?? 0)
+    return calculateCharityFromTotalMinusPoints(od.originalAmount, pts)
+  }
+  return calculateCharityAmount(paymentData.value.amount || 0)
 })
 
 const selectedMethod = ref(1)

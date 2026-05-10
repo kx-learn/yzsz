@@ -83,6 +83,7 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getProductList, updateProduct } from '@/api/product.js'
 import config from '@/utils/config.js'
+import { normalizeRemoteUrl, isAbsoluteHttpUrl } from '@/utils/imageUrl.js'
 
 const searchKeyword = ref('')
 const currentFilter = ref('all')
@@ -195,10 +196,12 @@ const loadProducts = async () => {
 				(p.banner_images && p.banner_images.length > 0 ? p.banner_images[0] : null) ||
 				null
 			
-			// 如果图片是相对路径，需要拼接服务器地址
-			if (image && !image.startsWith('http') && !image.startsWith('/static')) {
-				const imagePath = image.startsWith('/') ? image : `/${image}`
-				image = `${config.baseURL}${imagePath}`
+			if (image) {
+				image = normalizeRemoteUrl(image)
+				if (image && !isAbsoluteHttpUrl(image) && !image.startsWith('/static')) {
+					const imagePath = image.startsWith('/') ? image : `/${image}`
+					image = `${config.baseURL}${imagePath}`
+				}
 			}
 			
 			// 处理库存：从 skus 中汇总
@@ -372,33 +375,27 @@ const toggleStatus = async (product) => {
  * 获取商品图片
  */
 const getProductImage = (product) => {
-	// 优先使用处理好的 image 字段
-	if (product.image) {
-		return product.image
-	}
-	// 然后尝试 main_image
-	if (product.main_image) {
-		return product.main_image
-	}
-	// 尝试数组字段
-	if (product.banner_images && product.banner_images.length > 0) {
-		const img = product.banner_images[0]
-		// 如果是相对路径，拼接服务器地址
-		if (img && !img.startsWith('http') && !img.startsWith('/static')) {
+	const joinIfRelative = (raw) => {
+		if (!raw) return raw
+		let img = normalizeRemoteUrl(raw)
+		if (img && !isAbsoluteHttpUrl(img) && !img.startsWith('/static')) {
 			const imagePath = img.startsWith('/') ? img : `/${img}`
-			return `${config.baseURL}${imagePath}`
+			img = `${config.baseURL}${imagePath}`
 		}
 		return img
+	}
+	if (product.image) {
+		return joinIfRelative(product.image)
+	}
+	if (product.main_image) {
+		return joinIfRelative(product.main_image)
+	}
+	if (product.banner_images && product.banner_images.length > 0) {
+		return joinIfRelative(product.banner_images[0])
 	}
 	if (product.images && product.images.length > 0) {
-		const img = product.images[0]
-		if (img && !img.startsWith('http') && !img.startsWith('/static')) {
-			const imagePath = img.startsWith('/') ? img : `/${img}`
-			return `${config.baseURL}${imagePath}`
-		}
-		return img
+		return joinIfRelative(product.images[0])
 	}
-	// 默认图片
 	return '/static/product1.jpg'
 }
 

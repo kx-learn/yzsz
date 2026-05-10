@@ -53,12 +53,17 @@ export const updatePointsWithAutoMobile = async (params) => {
 }
 
 /**
- * 获取后端返回的实际手机号（从user/mobile接口）
- * @returns {Promise<String>} 返回实际手机号
+ * 获取当前用户 11 位手机号：优先本地 userInfo；若无再调 GET /user/mobile（后端未开放时由 catch 回落本地）。
+ * @returns {Promise<String>}
  */
 const getActualMobileFromBackend = async () => {
   try {
     const userInfo = uni.getStorageSync('userInfo') || {}
+    const localFirst = String(userInfo.mobile || userInfo.phone || '').trim()
+    if (/^\d{11}$/.test(localFirst)) {
+      return localFirst
+    }
+
     const userId = userInfo.user_id || userInfo.id || userInfo.userId || userInfo.uid
 
     if (!userId) {
@@ -66,7 +71,6 @@ const getActualMobileFromBackend = async () => {
       throw new Error('缺少用户ID，请先登录')
     }
 
-    // 调用后端接口获取实际手机号
     const res = await getMobileByUserId(userId, 'gm2025')
     console.log('[积分API] 从后端获取手机号响应:', res)
 

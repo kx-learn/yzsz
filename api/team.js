@@ -187,30 +187,27 @@ export const getUniLevelStatus = (user_id) => {
 
 /**
  * 自动晋升联创
- * @param {Number} user_id 用户ID（必需，作为query参数）
+ * @param {Number|string} user_id 用户ID
  * @returns {Promise}
- * 注意：如果已经是最高等级或条件未达标，会静默返回错误，不显示提示
+ * 注意：POST 同时带 query 与 JSON body，兼容只读 Query 或只读 Body 的后端；user_id 须为正整数（避免 NaN 被序列化为 null 导致 422）
  */
 export const promoteUniLevel = (user_id) => {
-  if (!user_id) {
+  const uid = Number.parseInt(String(user_id).trim(), 10)
+  if (!Number.isFinite(uid) || uid <= 0) {
     return Promise.reject(new Error('用户ID不能为空'))
   }
-  // POST请求，但user_id作为query参数传递
-  const url = `/unilevel/promote?user_id=${encodeURIComponent(user_id)}`
-  
-  return request.post(url, {}).catch((error) => {
-    // 如果是400错误且提示已达到最高等级或条件未达标，静默处理，不抛出错误
-    if (error.code === 400 || error.statusCode === 400) {
-      const errorMsg = error.message || error.errorMsg || error.msg || ''
-      if (errorMsg.includes('已到达最高等级') || errorMsg.includes('条件未达标') || errorMsg.includes('无法晋升')) {
-        // 静默返回，不显示错误
-        return Promise.resolve({ 
-          data: { unilevel: null, message: '已达到最高等级或条件未达标' },
-          silent: true 
-        })
-      }
+  const url = `/unilevel/promote?user_id=${encodeURIComponent(uid)}`
+  const body = { user_id: uid }
+
+  return request.post(url, body).catch((error) => {
+    const code = error.code || error.statusCode
+    // 团队页仅「尝试」自动晋升：后端常以 400/422 表示未达标、已满级等，一律静默，避免控制台与 toast 刷屏
+    if (code === 400 || code === 422) {
+      return Promise.resolve({
+        data: { unilevel: null, message: '晋升条件未满足或已是当前等级' },
+        silent: true
+      })
     }
-    // 其他错误正常抛出
     throw error
   })
 }

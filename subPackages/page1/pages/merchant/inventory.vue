@@ -98,6 +98,7 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getProductList, updateProduct } from '@/api/product.js'
 import config from '@/utils/config.js'
+import { normalizeRemoteUrl, isAbsoluteHttpUrl } from '@/utils/imageUrl.js'
 
 const searchKeyword = ref('')
 const currentFilter = ref('all')
@@ -390,10 +391,12 @@ const loadProductList = async () => {
 				? product.banner_images[0] 
 				: (product.main_image || product.image || product.image_url || product.cover_image || '/static/logo.png')
 			
-			// 如果图片是相对路径，需要拼接服务器地址
-			if (image && !image.startsWith('http') && !image.startsWith('/static') && !image.startsWith('data:')) {
-				const imagePath = image.startsWith('/') ? image : `/${image}`
-				image = `${config.baseURL}${imagePath}`
+			if (image && typeof image === 'string') {
+				image = normalizeRemoteUrl(image)
+				if (image && !isAbsoluteHttpUrl(image) && !image.startsWith('/static') && !image.startsWith('data:')) {
+					const imagePath = image.startsWith('/') ? image : `/${image}`
+					image = `${config.baseURL}${imagePath}`
+				}
 			}
 			
 			return {

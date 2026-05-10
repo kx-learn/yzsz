@@ -3,6 +3,7 @@
  */
 
 import request from '@/utils/request.js'
+export { getUniLevelStatus, promoteUniLevel } from '@/api/team.js'
 
 /**
  * 手动发放联创星级分红
@@ -10,24 +11,6 @@ import request from '@/utils/request.js'
  */
 export const distributeDividend = () => {
   return request.post('/api/unilevel/dividend')
-}
-
-/**
- * 获取联创状态
- * @param {Number} user_id 用户ID
- * @returns {Promise}
- */
-export const getUniLevelStatus = (user_id) => {
-  return request.get('/unilevel/status', { user_id })
-}
-
-/**
- * 自动晋升联创
- * @param {Number} user_id 用户ID
- * @returns {Promise}
- */
-export const promoteUniLevel = (user_id) => {
-  return request.post('/unilevel/promote', { user_id })
 }
 
 /**

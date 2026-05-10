@@ -66,6 +66,7 @@ import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getStoreList, previewStoreLogo } from '@/api/store.js'
 import config from '@/utils/config.js'
+import { normalizeRemoteUrl, isAbsoluteHttpUrl } from '@/utils/imageUrl.js'
 
 const storeList = ref([])
 const page = ref(1)
@@ -120,12 +121,13 @@ const loadStores = async (append = false) => {
 		stores = stores.map(store => {
 			if (store.store_logo_image_id) {
 				store.store_logo_url = previewStoreLogo(store.store_logo_image_id)
-			} else if (store.store_logo_url && !store.store_logo_url.startsWith('http://') && !store.store_logo_url.startsWith('https://')) {
-				// 如果是相对路径，添加baseURL
-				if (store.store_logo_url.startsWith('/')) {
+			} else if (store.store_logo_url) {
+				let logo = normalizeRemoteUrl(store.store_logo_url)
+				if (!isAbsoluteHttpUrl(logo) && logo.startsWith('/')) {
 					const baseURL = (config.default || config).baseURL || ''
-					store.store_logo_url = baseURL + store.store_logo_url
+					logo = baseURL + logo
 				}
+				store.store_logo_url = logo
 			}
 			return store
 		})

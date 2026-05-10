@@ -155,9 +155,8 @@ class Request {
             const errorMsg = responseData.detail || responseData.message || responseData.msg || '请求参数错误'
             const errorMsgStr = typeof errorMsg === 'string' ? errorMsg : String(errorMsg)
 
-            // 检查是否是联创晋升相关的错误（已达到最高等级或条件未达标），这些错误不需要显示
-            const isUniLevelPromoteError = options.url && options.url.includes('/unilevel/promote') &&
-              (errorMsgStr.includes('已到达最高等级') || errorMsgStr.includes('条件未达标') || errorMsgStr.includes('无法晋升'))
+            // 联创自动晋升：后端对「不可晋升」常直接返回 400，detail 可能为数组，不在此打 error / 不弹 toast
+            const isUniLevelPromoteError = options.url && options.url.includes('/unilevel/promote')
 
             if (!isUniLevelPromoteError) {
               console.error('[400错误] 请求参数或业务错误:', {
@@ -244,19 +243,26 @@ class Request {
               errorMsg = String(errorMsg)
             }
 
-            console.error(`[${res.statusCode}错误]`, {
-              statusCode: res.statusCode,
-              errorMsg: errorMsg,
-              fullData: responseData,
-              rawData: res.data
-            })
+            const isPromoteUrl = options.url && options.url.includes('/unilevel/promote')
+            const suppressPromoteNoise = isPromoteUrl && res.statusCode === 422
+
+            if (!suppressPromoteNoise) {
+              console.error(`[${res.statusCode}错误]`, {
+                statusCode: res.statusCode,
+                errorMsg: errorMsg,
+                fullData: responseData,
+                rawData: res.data
+              })
+            }
 
             // 确保 handleError 接收的是字符串；405 Method Not Allowed 等不直接展示给用户（快递列表等会自动用 POST 重试）
             if (typeof errorMsg !== 'string') {
               errorMsg = String(errorMsg)
             }
             const isMethodError = res.statusCode === 405 || (typeof errorMsg === 'string' && /method\s*not\s*allowed|require\s*POST|POST\s*method/i.test(errorMsg))
-            this.handleError(isMethodError ? '加载失败，请重试' : errorMsg)
+            if (!suppressPromoteNoise) {
+              this.handleError(isMethodError ? '加载失败，请重试' : errorMsg)
+            }
 
             // 构建错误对象，确保 message、statusCode、code 可用（getDeliveryList 等需根据 405 自动重试 POST）
             const errorObj = {

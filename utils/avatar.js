@@ -3,6 +3,7 @@
  */
 
 import config from './config.js'
+import { normalizeRemoteUrl, isAbsoluteHttpUrl } from './imageUrl.js'
 
 /**
  * 处理头像URL，确保正确显示
@@ -42,9 +43,11 @@ export const getAvatarUrl = (avatarPath) => {
   if (typeof avatarPath !== 'string') {
     return '/static/logo.png'
   }
-  
+
+  avatarPath = normalizeRemoteUrl(avatarPath.trim())
+
   // 如果已经是完整URL，检查是否是临时路径
-  if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+  if (isAbsoluteHttpUrl(avatarPath)) {
     // http://tmp/ 是微信小程序的临时路径，在浏览器中无法访问
     // 需要转换为服务器URL或使用默认头像
     if (avatarPath.startsWith('http://tmp/') || avatarPath.startsWith('https://tmp/')) {
@@ -66,9 +69,8 @@ export const getAvatarUrl = (avatarPath) => {
   // 处理相对路径：确保以 / 开头
   const imagePath = avatarPath.startsWith('/') ? avatarPath : `/${avatarPath}`
   
-  // 拼接服务器地址
-  const fullUrl = `${config.baseURL}${imagePath}`
-  
+  const base = normalizeRemoteUrl(String(config.baseURL || '').trim()) || String(config.baseURL || '')
+  const fullUrl = normalizeRemoteUrl(`${base}${imagePath}`)
   return fullUrl
 }
 

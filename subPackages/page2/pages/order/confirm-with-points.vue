@@ -47,7 +47,7 @@
     <view class="points-section" v-if="canUsePoints">
       <view class="section-header">
         <text class="section-title">积分抵扣</text>
-        <text class="available-points">可用 {{ formatAmount(userPoints) }} 积分</text>
+        <text class="available-points">可用 {{ formatAmount(userPoints) }} 积分（1 积分 = 1 元）</text>
       </view>
       
       <view class="points-input-row">
@@ -61,7 +61,7 @@
           :disabled="userPoints === 0 || maxPointsDiscount === 0"
           @input="onPointsInput"
         />
-        <text class="input-unit">分</text>
+        <text class="input-unit">元</text>
         <button 
           class="use-max-btn" 
           :disabled="userPoints === 0 || maxPointsDiscount === 0"
@@ -87,7 +87,7 @@
       <view class="points-tips">
         <text class="tip-item">• 最多可抵扣 {{ formatAmount(maxPointsDiscount) }} 积分（受商品设置和订单金额限制）</text>
         <text class="tip-item">• 会员商品不可使用积分抵扣</text>
-        <text class="tip-item">• 1积分 = 1元</text>
+        <text class="tip-item">• 输入框单位为「元」，与抵扣金额一致</text>
         <text class="tip-item">• 本次可获得 {{ formatAmount(actualAmount) }} 积分</text>
       </view>
     </view>
@@ -229,6 +229,33 @@ const formatAmount = (val) => {
 
 // 保留4位小数的数值（用于积分、金额计算）
 const roundTo4 = (val) => Number((Number(val || 0)).toFixed(4))
+
+/** 从接口原始记录解析面额（元），避免只用 amount 漏掉 face_value 等字段 */
+const parseCouponAmountYuan = (raw) => {
+	if (!raw || typeof raw !== 'object') return null
+	const tpl = raw.template && typeof raw.template === 'object' ? raw.template : null
+	const v =
+		raw.amount ??
+		raw.face_value ??
+		raw.faceValue ??
+		raw.coupon_amount ??
+		raw.couponAmount ??
+		raw.value ??
+		(tpl && (tpl.amount ?? tpl.face_value ?? tpl.faceValue ?? tpl.value))
+	if (v === '' || v == null) return null
+	const n = Number(v)
+	return Number.isFinite(n) ? n : null
+}
+
+/** 是否视为 1 元券（兼容浮点误差，如 0.999999） */
+const isOneYuanAmount = (amountYuan) => {
+	const x = Number(amountYuan)
+	if (!Number.isFinite(x)) return false
+	if (Math.abs(x - 1) < 1e-6) return true
+	return Math.round(x * 100) / 100 === 1
+}
+
+const isCouponUnused = (status) => String(status || '').toLowerCase() === 'unused'
 
 /**
  * 格式化规格信息
@@ -381,8 +408,8 @@ const maxPointsDiscount = computed(() => {
 	return Math.max(0, result)
 })
 
-// 积分抵扣金额
-const pointsDiscount = computed(() => pointsToUse.value)
+// 积分抵扣金额（元）：无可用积分商品时不计入，避免残留 pointsToUse 仍写入请求、压低一元券张数上限
+const pointsDiscount = computed(() => (canUsePoints.value ? pointsToUse.value : 0))
 
 /** 将「使用积分」限制在 [0, min(用户积分, 规则上限)] */
 const clampPointsToUse = (raw) => {
@@ -422,13 +449,27 @@ watch(maxPointsDiscount, (maxVal) => {
 	}
 })
 
-// 可用的1元券列表（按过期时间升序）
+// 整单无可用积分的商品（如全是会员商品）时，禁止使用积分抵扣，并清空已填写的积分（避免隐藏区仍向后端传值）
+watch(canUsePoints, (ok) => {
+	if (!ok) pointsToUse.value = 0
+})
+
+// 可用的 1 元券（按过期时间升序；同一 id 只保留一条，避免 coupon_ids 重复）
 const availableOneYuanCoupons = computed(() => {
   const filtered = availableCoupons.value
-    .filter(coupon => Number(coupon.amount) === 1 && coupon.status === 'unused')
+    .filter((coupon) => isOneYuanAmount(coupon.amount) && isCouponUnused(coupon.status))
     .sort((a, b) => new Date(a.validTo) - new Date(b.validTo))
-  console.log('[调试] availableOneYuanCoupons:', filtered.map(c => ({ id: c.id, amount: c.amount, status: c.status, validTo: c.validTo })))
-  return filtered
+  const seen = new Set()
+  const unique = []
+  for (const c of filtered) {
+    if (c.id == null || seen.has(c.id)) continue
+    seen.add(c.id)
+    unique.push(c)
+  }
+  if (filtered.length !== unique.length) {
+    console.warn('[优惠券] 1元券列表存在重复 id，已去重:', { raw: filtered.length, unique: unique.length })
+  }
+  return unique
 })
 
 // 最大可使用张数（由商品原价-积分抵扣 向上取整）
@@ -458,13 +499,13 @@ const effectiveCouponUseCount = computed(() => {
   return Math.max(0, Math.min(raw, cap))
 })
 
-// 自动选中的优惠券 ID（取前 effectiveCouponUseCount 张）
+// 自动选中的优惠券 ID（取前 effectiveCouponUseCount 张；1 元券列表已按 id 去重）
 const selectedCouponIds = computed(() => {
   return availableOneYuanCoupons.value.slice(0, effectiveCouponUseCount.value).map((c) => c.id)
 })
 
-// 优惠券总抵扣金额（每张 1 元，与 selectedCouponIds 长度一致）
-const couponDiscount = computed(() => effectiveCouponUseCount.value)
+// 优惠券总抵扣金额（每张 1 元）：与 coupon_ids 长度严格一致
+const couponDiscount = computed(() => selectedCouponIds.value.length)
 // 实际支付金额
 const actualAmount = computed(() => {
   return Math.max(0, originalAmount.value - pointsDiscount.value - couponDiscount.value)
@@ -526,7 +567,17 @@ const loadAvailableCoupons = async () => {
       }
     }
     
-    console.log(`[优惠券] 共加载 ${allCoupons.length} 张优惠券（${page} 页）`)
+    console.log(`[优惠券] 分页合并原始条数 ${allCoupons.length}（${page} 页）`)
+
+    // 分页/接口可能重复返回同一券 id，先去重再参与「张数」与 coupon_ids，避免与后端按唯一 id 核销不一致
+    const byId = new Map()
+    for (const c of allCoupons) {
+      if (!c || c.id == null) continue
+      if (!byId.has(c.id)) byId.set(c.id, c)
+    }
+    allCoupons = Array.from(byId.values())
+
+    console.log(`[优惠券] 去重后条数 ${allCoupons.length}`)
     // ========== 分页循环加载结束 ==========
 
     const now = Date.now()
@@ -534,7 +585,7 @@ const loadAvailableCoupons = async () => {
     // 过滤出未使用且未过期的优惠券（分页合并结果为 allCoupons）
     availableCoupons.value = allCoupons
       .filter((c) => {
-        if (c.status !== 'unused') return false
+        if (!isCouponUnused(c.status)) return false
 
         const validTo = c.valid_to || c.validTo
         if (validTo) {
@@ -545,12 +596,13 @@ const loadAvailableCoupons = async () => {
         return true
       })
       .map((c) => {
+        const amountYuan = parseCouponAmountYuan(c)
         return {
           id: c.id,
           name: c.name || `优惠券`,
           useScope: c.use_scope || c.useScope || 'all',
           applicable_product_type: c.applicable_product_type || c.applicableProductType || 'all',
-          amount: c.amount || 0,
+          amount: amountYuan != null ? amountYuan : 0,
           minSpend: c.min_spend || c.minSpend || 0,
           validTo: c.valid_to || c.validTo,
           status: c.status
@@ -762,7 +814,7 @@ const submitFreeOrder = async () => {
     uni.showToast({ title: '请选择收货地址', icon: 'none' })
     return
   }
-  if (pointsToUse.value > userPoints.value) {
+  if (canUsePoints.value && pointsToUse.value > userPoints.value) {
     uni.showToast({ title: '积分不足', icon: 'none' })
     return
   }
@@ -856,7 +908,7 @@ const submitFreeOrder = async () => {
         buy_now: true,
         buy_now_items: buyNowItems,
         delivery_way: deliveryWay.value || 'platform',
-        points_to_use: pointsToUse.value,
+        points_to_use: pointsDiscount.value,
         pointsDiscount: pointsDiscount.value,
         coupon_ids: selectedCouponIds.value,   // 改为 coupon_ids（下划线）
         actualAmount: 0,
@@ -869,7 +921,7 @@ const submitFreeOrder = async () => {
         custom_address: customAddress,
         delivery_way: deliveryWay.value || 'platform',
         coupon_ids: selectedCouponIds.value,
-        points_to_use: pointsToUse.value,
+        points_to_use: pointsDiscount.value,
         pointsDiscount: pointsDiscount.value,
         actualAmount: 0,
         is_free_order: true
@@ -892,7 +944,7 @@ const submitFreeOrder = async () => {
       totalAmount: originalAmount.value,
       productTotal: productTotal.value,
       actualAmount: 0,
-      pointsUsed: pointsToUse.value,
+      pointsUsed: pointsDiscount.value,
       pointsDiscount: pointsDiscount.value,
       couponDiscount: couponDiscount.value,
       couponIds: selectedCouponIds.value,
@@ -980,7 +1032,7 @@ const submitOrder = async () => {
     uni.showToast({ title: '请选择收货地址', icon: 'none' })
     return
   }
-  if (pointsToUse.value > userPoints.value) {
+  if (canUsePoints.value && pointsToUse.value > userPoints.value) {
     uni.showToast({ title: '积分不足', icon: 'none' })
     return
   }
@@ -995,7 +1047,7 @@ const submitOrder = async () => {
     totalAmount: originalAmount.value,
     productTotal: productTotal.value,
     actualAmount: actualAmount.value,
-    pointsUsed: pointsToUse.value,
+    pointsUsed: pointsDiscount.value,
     pointsDiscount: pointsDiscount.value,
     couponDiscount: couponDiscount.value,
     couponIds: selectedCouponIds.value,
@@ -1050,7 +1102,7 @@ const submitOrder = async () => {
     productTotal: productTotal.value,
     deliveryFee: deliveryFee.value,
     originalAmount: originalAmount.value,
-    points_to_use: pointsToUse.value,
+    points_to_use: pointsDiscount.value,
     pointsDiscount: pointsDiscount.value,
     couponDiscount: couponDiscount.value,
     couponIds: selectedCouponIds.value,
@@ -1172,7 +1224,7 @@ const submitOrder = async () => {
       buy_now: true,
       buy_now_items: buyNowItems,
       delivery_way: deliveryWay.value,
-      points_to_use: pointsToUse.value,
+      points_to_use: pointsDiscount.value,
       pointsDiscount: pointsDiscount.value,
       coupon_ids: selectedCouponIds.value,
       actualAmount: actualAmount.value
@@ -1184,7 +1236,7 @@ const submitOrder = async () => {
       custom_address: customAddress,
       delivery_way: deliveryWay.value,
       coupon_ids: selectedCouponIds.value,
-      points_to_use: pointsToUse.value,
+      points_to_use: pointsDiscount.value,
       pointsDiscount: pointsDiscount.value,
       actualAmount: actualAmount.value
     }
@@ -1214,7 +1266,11 @@ const submitOrder = async () => {
 
 onLoad(async (options) => {
 	console.log('订单确认页 - 接收到的参数:', options)
-	
+
+	// 新进入结算页时清零，避免上一笔订单残留的积分/券张数影响本单（页面实例复用或仅触发 onShow 时尤为明显）
+	pointsToUse.value = 0
+	selectedCouponCount.value = 0
+
 	// 判断订单来源
 		if (options.data) {
 		// 从URL参数获取订单数据（直接购买）

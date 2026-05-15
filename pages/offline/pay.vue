@@ -412,8 +412,8 @@ async function loadCoupons() {
   try {
     // ========== 分页循环加载开始 ==========
     let page = 1
-    const pageSize = 100        // 每页条数
-    const maxPages = 100        // 最多加载100页（10000张兜底）
+    const pageSize = 200
+    const maxPages = 500
     let allCoupons = []
     let hasMore = true
     

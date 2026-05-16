@@ -1,14 +1,6 @@
 <template>
   <view class="weight-page">
     <view class="section-card">
-      <view class="section-title">
-        <text class="iconfont icon-shezhi section-icon"></text>
-        <text>权重调整</text>
-      </view>
-      <text class="tip">直推奖励比例：GET/POST /api/fund-pools/direct-referral-reward-rate，与 FinanceService.get/set_direct_referral_reward_rate 及常量 DEFAULT_DIRECT_REFERRAL_REWARD_RATE 对应；合法范围 (0, 1]。</text>
-    </view>
-
-    <view class="section-card">
       <view class="field-head">
         <text class="field-label">直推奖励比例 rate</text>
       </view>
@@ -136,27 +128,6 @@ onMounted(() => {
   padding: 28rpx 24rpx;
   margin-bottom: 24rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12rpx;
-}
-
-.section-icon {
-  font-size: 36rpx;
-  color: #673ab7;
-}
-
-.tip {
-  font-size: 24rpx;
-  color: #888;
-  line-height: 1.55;
 }
 
 .field-head {

@@ -129,7 +129,7 @@
 		<view class="coupon-section">
 			<view class="section-header">
 				<text class="section-title">优惠券</text>
-				<text class="available-points">共有 {{ availableCoupons.length }} 张可用</text>
+				<text class="available-points">共有 {{ displayUnusedCouponCount }} 张可用</text>
 			</view>
 
       <view class="auto-coupon-info">
@@ -152,7 +152,7 @@
 	  />
 	</view>
     <!-- 无可用优惠券时的提示 -->
-    <view class="coupon-section" v-else-if="!hasCashOnlyProduct && availableCoupons.length === 0">
+    <view class="coupon-section" v-else-if="!hasCashOnlyProduct && displayUnusedCouponCount === 0 && !loadingCoupons">
       <view class="section-header">
         <text class="section-title">优惠券</text>
         <text class="available-points">暂无可用</text>
@@ -215,7 +215,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { calculateCharityFromTotalMinusPoints } from '../../config/charity.js'
 import { ensureMerchantOrder, evaluateDeliveryForAddress } from '../../utils/merchant.js'
-import { getMyCoupons } from '@/api/coupon.js'
+import { getMyCoupons, pickMyCouponsTotal, countUnusedUnexpiredCoupons } from '@/api/coupon.js'
 import { createOrder } from '@/api/order.js'
 import { addLocalMessage } from '@/api/message.js'
 import { getAddressList } from '@/api/user.js'
@@ -292,6 +292,14 @@ const deliveryWay = ref('platform')
 
 // 优惠券相关变量
 const availableCoupons = ref([])
+/** 与个人中心一致：优先为 GET /my 返回的未使用券 total；无 total 时在 load 末尾用列表统计回退 */
+const unusedCouponTotalFromApi = ref(null)
+
+const displayUnusedCouponCount = computed(() => {
+	const t = unusedCouponTotalFromApi.value
+	if (Number.isFinite(t) && t >= 0) return Math.floor(t)
+	return availableCoupons.value.length
+})
 // 用户选择的优惠券张数（默认使用全部可用）
 const selectedCouponCount = ref(0)
 const loadingCoupons = ref(true)   // 优惠券数据是否正在加载
@@ -532,13 +540,32 @@ const loadAvailableCoupons = async () => {
     if (!Number.isFinite(userId) || userId <= 0) {
       console.error('用户未登录或用户ID无效')
       availableCoupons.value = []
+      unusedCouponTotalFromApi.value = null
       return
+    }
+
+    unusedCouponTotalFromApi.value = null
+    try {
+      const headRes = await getMyCoupons({
+        user_id: userId,
+        status: 'unused',
+        page: 1,
+        page_size: 1
+      })
+      const headTotal = pickMyCouponsTotal(headRes)
+      if (headTotal != null) {
+        unusedCouponTotalFromApi.value = headTotal
+      }
+    } catch (e) {
+      console.warn('[优惠券] 获取未使用券 total（与个人中心同源）失败', e)
     }
 
     // ========== 分页循环加载开始 ==========
     let page = 1
-    const pageSize = 100        // 每页条数
-    const maxPages = 100        // 最多加载100页（10000张兜底）
+    // 与后端 /my 的 page_size 上限协调；提高单页可减少请求次数
+    const pageSize = 200
+    // 提高总拉取上限（原 100×100=1 万）；去重后实际券量通常远小于原始条数
+    const maxPages = 500
     let allCoupons = []
     let hasMore = true
     
@@ -610,9 +637,14 @@ const loadAvailableCoupons = async () => {
       })
 
     console.log('可用优惠券数量:', availableCoupons.value.length)
+
+    if (unusedCouponTotalFromApi.value == null) {
+      unusedCouponTotalFromApi.value = countUnusedUnexpiredCoupons(allCoupons)
+    }
   } catch (error) {
     console.error('加载优惠券失败', error)
     availableCoupons.value = []
+    unusedCouponTotalFromApi.value = null
   } finally {
     loadingCoupons.value = false
     nextTick(() => {

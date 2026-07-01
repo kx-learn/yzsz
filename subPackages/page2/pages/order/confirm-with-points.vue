@@ -326,15 +326,22 @@ const hasCashOnlyProduct = computed(() => {
   return orderItems.value.some(item => item.cash_only == 1)
 })
 
-// 是否存在至少一个“可使用积分”的普通商品
-const canUsePoints = computed(() => {
-	return orderItems.value.some(item => !(item.isVip || item.productType === 'vip'))
-})
+// 是否存在至少一个"可使用积分"的普通商品（非VIP且积分抵扣上限不为0）
+	const canUsePoints = computed(() => {
+		return orderItems.value.some(item => {
+			if (item.isVip || item.productType === 'vip') return false
+			// max_points_discount 明确设为 0 表示不允许使用积分
+			if (typeof item.max_points_discount === 'number' && item.max_points_discount <= 0) return false
+			if (typeof item.maxPointsDeduction === 'number' && item.maxPointsDeduction <= 0) return false
+			return true
+		})
+	})
 
 // 最大可抵扣积分
 // 规则：会员商品不可抵扣；普通商品使用商品接口的 max_points_discount 参数，按单件 max_points_discount×数量汇总，再受订单金额50%与用户积分上限约束
 const maxPointsDiscount = computed(() => {
 	// 先按商品汇总可抵扣金额
+		let hasAnyPointsAllowed = false
 	const productCap = orderItems.value.reduce((sum, item) => {
 		const isVipProduct = item.isVip || item.productType === 'vip'
 		if (isVipProduct) return sum
@@ -346,27 +353,35 @@ const maxPointsDiscount = computed(() => {
 		// 单件抵扣上限：优先使用商品接口的 max_points_discount 参数
 		// 支持两种字段名：max_points_discount（后端接口字段）或 maxPointsDeduction（前端转换后的字段）
 		let perItemCap = 0
+		let hasExplicitSetting = false
 		
-		// 优先使用后端接口的 max_points_discount 字段（即使为0也要使用，0表示不限制）
+		// 优先使用后端接口的 max_points_discount 字段
 		if (typeof item.max_points_discount === 'number') {
 			perItemCap = item.max_points_discount
+			hasExplicitSetting = true
 			console.log(`[积分抵扣] 商品 ${item.name} 使用 max_points_discount:`, perItemCap)
 		} else if (typeof item.maxPointsDeduction === 'number') {
 			// 兼容前端转换后的 maxPointsDeduction 字段
 			perItemCap = item.maxPointsDeduction
+			hasExplicitSetting = true
 			console.log(`[积分抵扣] 商品 ${item.name} 使用 maxPointsDeduction:`, perItemCap)
-		} else {
-			console.warn(`[积分抵扣] 商品 ${item.name} 没有积分抵扣上限字段，使用价格作为上限`)
 		}
 		
-		// 如果 max_points_discount 为 0 或未设置，则不限制（以单价为上限）
-		if (perItemCap <= 0) {
-			perItemCap = price
-			console.log(`[积分抵扣] 商品 ${item.name} 抵扣上限为0或未设置，使用价格作为上限:`, perItemCap)
+		// 如果明确设置了抵扣上限为 0，表示该商品不允许使用积分抵扣
+		if (hasExplicitSetting && perItemCap <= 0) {
+			console.log(`[积分抵扣] 商品 ${item.name} 抵扣上限为0，不可使用积分抵扣`)
+			return sum
 		}
-
+		
+		// 如果未设置抵扣上限（旧数据兼容），默认以单价为上限
+		if (!hasExplicitSetting) {
+			perItemCap = price
+			console.log(`[积分抵扣] 商品 ${item.name} 未设置抵扣上限，默认使用价格作为上限:`, perItemCap)
+		}
+		
 		// 单件抵扣上限不能超过单价
 		perItemCap = Math.min(perItemCap, price)
+			hasAnyPointsAllowed = true
 		
 		// 该商品的总抵扣上限 = 单件抵扣上限 × 数量（不超过商品总价）
 		const totalCap = Math.min(itemAmount, perItemCap * quantity)
@@ -394,17 +409,18 @@ const maxPointsDiscount = computed(() => {
 		'用户积分': userPoints.value
 	})
 	
-	// 最终限制：商品设置的抵扣上限优先，订单金额50%仅作为最终上限
-	let finalLimit = productCap
-	if (productCap > 0) {
+		// 最终限制：如果没有商品允许积分抵扣，则上限为 0；否则商品设置优先，50%为最终上限
+		let finalLimit
+	if (!hasAnyPointsAllowed) {
+		finalLimit = 0
+		console.log(`[积分抵扣] 所有商品均不允许积分抵扣，上限为 0`)
+	} else if (productCap > 0) {
 		finalLimit = roundTo4(Math.min(productCap, orderHalf))
 		console.log(`[积分抵扣] 商品设置了抵扣上限，使用商品设置的值（受订单50%限制）:`, finalLimit)
 	} else {
 		finalLimit = orderHalf
 		console.log(`[积分抵扣] 商品未设置抵扣上限，使用订单金额50%:`, finalLimit)
 	}
-	
-	// 最终可抵扣积分：取用户积分和最终限制的最小值，精确到4位小数（不再使用 Math.floor，否则 0.01 会变成 0）
 	const result = roundTo4(Math.min(userPoints.value, finalLimit))
 	console.log(`[积分抵扣] 最终限制:`, {
 		'商品抵扣上限': productCap,

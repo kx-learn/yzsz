@@ -199,7 +199,7 @@
             v-model.number="productForm.maxPointsDeduction"
             class="form-input"
             type="digit"
-            :placeholder="'最多可抵扣的金额，0表示不限制'"
+            :placeholder="'最多可抵扣的金额，0表示不可使用积分'"
             @input="onMaxPointsInput"
           />
         </view>

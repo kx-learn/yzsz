@@ -100,10 +100,10 @@
               type="digit"
               v-model.number="pointsToUse"
               placeholder="0"
-              :disabled="userPointsBalance === 0 || maxPointsDiscount <= 0"
+              :disabled="disablePoints || userPointsBalance === 0 || maxPointsDiscount <= 0"
               @input="onPointsInput"
             />
-            <button class="use-max-btn" type="button" @tap="useMaxPoints" :disabled="userPointsBalance === 0 || maxPointsDiscount <= 0">全部使用</button>
+            <button class="use-max-btn" type="button" @tap="useMaxPoints" :disabled="disablePoints || userPointsBalance === 0 || maxPointsDiscount <= 0">全部使用</button>
           </view>
           <view class="points-tips">
             <text class="tip-item">• 最多可抵扣 {{ formatAmount(maxPointsDiscount) }} 积分（1积分=1元，最多抵扣原价的 50%）</text>
@@ -245,6 +245,7 @@ const userPointsBalance = ref(0)
 const pointsToUse = ref(0)
 const orderEarnPoints = computed(() => Number(orderData.value?.earn_points ?? orderData.value?.earnPoints ?? 0))
 const maxPointsDiscount = computed(() => {
+  if (disablePoints.value) return 0
   const amt = orderAmount.value
   if (amt <= 0) return 0
   // 最多抵扣「原价的 50%」，且不能超过用户积分余额

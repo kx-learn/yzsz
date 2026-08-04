@@ -7,7 +7,7 @@
 		    :refresher-triggered="refreshing"
 		    @refresherrefresh="onRefresh"
 		    @refresherrestore="onRestore"
-		    enable-back-to-top
+			enable-back-to-top
 		>
 		<!-- 左上角：圆形 logo + 禹泽数字 -->
 		<view class="home-header">
@@ -136,12 +136,7 @@ const normalProducts = ref([])
 const charityNotices = ref([])
 const refreshing = ref(false)
 const loading = ref(true) // 添加加载状态，避免初始闪烁
-//const loadingMore = ref(false) // 加载更多状态
-//const hasMore = ref(true) // 是否还有更多商品
-//const currentPage = ref(1) // 当前页码
 const pageSize = ref(30) // 每页数量，初始加载30个商品
-//const allVipProducts = ref([]) // 所有会员商品
-//const allNormalProducts = ref([]) // 所有普通商品
 
 /**
  * 加载轮播图 - 从轮播图商品中获取所有轮播图
@@ -315,16 +310,22 @@ const formatProduct = (product) => {
 const loadProducts = async () => {
   try {
     const res = await getHomeProducts()
-    const productList = res.data || [] // 根据接口返回格式调整
+    const productList = Array.isArray(res.data) ? res.data : []
 
-    // 过滤在售商品（可选）
-    const onSaleProducts = productList.filter(p => p.status === 1)
+    // 首页接口已经完成推荐筛选，前端只负责按会员/普通商品分区展示。
+    const onSaleProducts = productList
 
-    const memberProducts = onSaleProducts.filter(p => p.is_member_product)
-    const normalProductsList = onSaleProducts.filter(p => !p.is_member_product)
+    const memberProducts = onSaleProducts.filter(p =>
+      p.is_member_product === true || p.is_member_product === 1 ||
+      p.is_member_product === '1' || p.is_member_product === 'true'
+    )
+    const normalProductsList = onSaleProducts.filter(p =>
+      p.is_member_product !== true && p.is_member_product !== 1 &&
+      p.is_member_product !== '1' && p.is_member_product !== 'true'
+    )
 
     // 普通商品：只保留首页推荐的商品
-    const normalProductsOnHome = normalProductsList.filter(p => p.is_home_recommend == 1)
+    const normalProductsOnHome = normalProductsList
 
     // 批量获取销量（可选，如不需要可删除）
     const salesPromises = onSaleProducts.map(product => 
@@ -342,18 +343,21 @@ const loadProducts = async () => {
     })
 
     // 格式化会员商品（取前10个）
-    vipProducts.value = memberProducts.map(product => {
-      const formatted = formatProduct(product)
-      if (salesMap[product.id] !== undefined) formatted.sales = salesMap[product.id]
-      return formatted
-    }).slice(0, 10)
-	
-    // 格式化普通商品
-    normalProducts.value = normalProductsOnHome.map(product => {
+    const formattedVipProducts = memberProducts.map(product => {
       const formatted = formatProduct(product)
       if (salesMap[product.id] !== undefined) formatted.sales = salesMap[product.id]
       return formatted
     })
+	
+    // 格式化普通商品
+    const formattedNormalProducts = normalProductsOnHome.map(product => {
+      const formatted = formatProduct(product)
+      if (salesMap[product.id] !== undefined) formatted.sales = salesMap[product.id]
+      return formatted
+    })
+
+    vipProducts.value = formattedVipProducts.slice(0, 10)
+    normalProducts.value = formattedNormalProducts
   } catch (error) {
     console.error('加载首页商品失败', error)
     vipProducts.value = []
@@ -673,16 +677,6 @@ const onRestore = () => {
 /**
  * scroll-view 滚动到底部事件处理
  */
-const handleScrollToLower = (e) => {
-	console.log('[首页] scroll-view scrolltolower 事件触发', e)
-	onLoadMore()
-}
-
-/**
- * 滚动到底部自动加载更多商品
- */
-
-
 /**
  * 会员专区横向滚动到底部时加载更多会员商品
  * 实际上也是加载下一页商品，但触发条件是 VIP 列表右滑到尽头

@@ -128,7 +128,7 @@ const loading = ref(false)
 const hasMore = ref(true)
 const refreshing = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(30) // 每页加载30个商品
+const pageSize = ref(20) // 每页加载20个商品
 
 // 商品类别（动态从后端数据中提取）
 const categories = ref([
@@ -174,6 +174,31 @@ const sortOptions = [
 
 // 商品列表 - 从API或本地存储加载，不再使用硬编码数据
 const products = ref([])
+
+const responseHasMore = (res, productList, size) => {
+  const data = res?.data && !Array.isArray(res.data) ? res.data : res
+  if (typeof data?.has_more === 'boolean') return data.has_more
+  if (typeof data?.hasMore === 'boolean') return data.hasMore
+  const total = Number(data?.total)
+  const page = Number(data?.page || currentPage.value)
+  if (Number.isFinite(total) && total > 0) return page * size < total
+  const pages = Number(data?.pages || data?.total_pages)
+  if (Number.isFinite(pages) && pages > 0) return page < pages
+  return productList.length >= size
+}
+
+const buildProductParams = (page) => {
+  const params = {
+    page,
+    size: pageSize.value,
+    status: 1,
+    is_member_product: productType.value === 1 ? 1 : 0
+  }
+  if (selectedCategory.value !== 'all') {
+    params.category = selectedCategory.value
+  }
+  return params
+}
 
 // 过滤后的商品列表（主要用于排序，分类筛选已在API层面完成）
 const filteredProducts = computed(() => {
@@ -263,10 +288,7 @@ const loadMore = async () => {
         pageSize: pageSize.value
       })
     } else {
-      res = await getProductList({
-        page: currentPage.value,
-        size: pageSize.value
-      })
+      res = await getProductList(buildProductParams(currentPage.value))
     }
     
     // 处理不同的响应格式
@@ -292,7 +314,7 @@ const loadMore = async () => {
     
     // 过滤在售商品，并排除轮播图商品
     const onSaleProducts = productList.filter(p => {
-      const isOnSale = p.status === 1 || p.status === 'on_sale' || p.status === 'active'
+      const isOnSale = p.status === 1 || p.status === '1' || p.status === 'on_sale' || p.status === 'active'
       const productName = (p.name || '').toLowerCase()
       const isBannerByName = productName.includes('轮播图')
       let isBannerBySku = false
@@ -312,13 +334,14 @@ const loadMore = async () => {
     let filteredList = []
     if (productType.value === 1) {
       filteredList = onSaleProducts.filter(p => {
-        return p.is_member_product === true || p.is_member_product === 1 || p.is_member_product === 'true'
+        return p.is_member_product === true || p.is_member_product === 1 || p.is_member_product === '1' || p.is_member_product === 'true'
       })
     } else if (productType.value === 2) {
       filteredList = onSaleProducts.filter(p => {
         return p.is_member_product === false || 
                p.is_member_product === 0 || 
                p.is_member_product === 'false' || 
+               p.is_member_product === '0' ||
                p.is_member_product === null || 
                p.is_member_product === undefined
       })
@@ -429,7 +452,7 @@ const loadMore = async () => {
     products.value = [...products.value, ...formattedProducts]
     
     // 如果返回的商品数量少于每页数量，说明没有更多了
-    if (productList.length < pageSize.value) {
+    if (!responseHasMore(res, productList, pageSize.value)) {
       hasMore.value = false
     }
     
@@ -505,10 +528,7 @@ const loadProducts = async () => {
     } else {
       // 和首页一样，不传type参数，获取所有商品
       // 注意：选择"全部"时，不传category参数，获取所有商品后再在前端筛选
-      const params = { 
-        page: currentPage.value, 
-        size: pageSize.value
-      }
+      const params = buildProductParams(currentPage.value)
       
       // 不在这里传category参数，而是在前端筛选
       // 因为后端可能不支持category参数，或者需要获取所有商品后再筛选
@@ -566,7 +586,7 @@ const loadProducts = async () => {
     // 过滤在售商品，并排除轮播图商品（和首页一样）
     const onSaleProducts = productList.filter(p => {
       // 必须是上架状态
-      const isOnSale = p.status === 1 || p.status === 'on_sale' || p.status === 'active'
+      const isOnSale = p.status === 1 || p.status === '1' || p.status === 'on_sale' || p.status === 'active'
       // 排除轮播图商品（名称包含"轮播图"或SKU以"BANNER-"开头）
       const productName = (p.name || '').toLowerCase()
       const isBannerByName = productName.includes('轮播图'	)
@@ -588,7 +608,7 @@ const loadProducts = async () => {
     if (productType.value === 1) {
       // 会员商品
       filteredList = onSaleProducts.filter(p => {
-        return p.is_member_product === true || p.is_member_product === 1 || p.is_member_product === 'true'
+        return p.is_member_product === true || p.is_member_product === 1 || p.is_member_product === '1' || p.is_member_product === 'true'
       })
     } else if (productType.value === 2) {
       // 普通商品
@@ -596,6 +616,7 @@ const loadProducts = async () => {
         return p.is_member_product === false || 
                p.is_member_product === 0 || 
                p.is_member_product === 'false' || 
+               p.is_member_product === '0' ||
                p.is_member_product === null || 
                p.is_member_product === undefined
       })
@@ -738,7 +759,7 @@ const loadProducts = async () => {
     console.log('[商品列表] 销量数据获取完成')
     
     // 如果返回的商品数量少于每页数量，说明没有更多了
-    if (productList.length < pageSize.value) {
+    if (!responseHasMore(res, productList, pageSize.value)) {
       hasMore.value = false
     } else {
       // 如果还有更多，增加页码

@@ -30,6 +30,7 @@
         <view class="ref-row">
           <text class="ref-text">当前 {{ (pointsData.current_value * 100).toFixed(4) }}%</text>
           <text class="ref-text">上限 {{ (pointsData.max_allowed_value * 100).toFixed(2) }}%</text>
+          <text class="ref-text">实时 {{ realtimePointsValuePercent }}%</text>
           <text class="ref-text">自动 {{ (pointsData.auto_calculated_value * 100).toFixed(4) }}%</text>
           <text class="ref-text" v-if="pointsData.is_manual_adjusted">手动 {{ (pointsData.manual_value * 100).toFixed(4) }}%</text>
         </view>
@@ -163,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getUnilevelDividendPreview, adjustUnilevelDividend } from '../../api/unilevel.js'
 import { getPointsValue, adjustPointsValue } from '../../api/subsidy.js'
 
@@ -199,6 +200,14 @@ const pointsData = ref({
 const unilevelAmountPerWeight = ref(0)
 const pointsValueInput = ref(0)
 const pointsAutoClear = ref(true)
+
+// 仅用于展示：补贴池余额 * 0.05 / 系统总积分，按百分比展示
+const realtimePointsValuePercent = computed(() => {
+  const poolBalance = Number(pointsData.value.subsidy_pool_balance || 0)
+  const totalPoints = Number(pointsData.value.total_system_points || 0)
+  if (!totalPoints) return '0.0000'
+  return ((poolBalance * 0.05 / totalPoints) * 100).toFixed(4)
+})
 
 /**
  * 格式化货币

@@ -124,13 +124,10 @@
 			</view>
 		</view>
 
-		<!-- 平台/商家入口：平台用户显示平台模式按钮；商家和普通用户统一显示商家模式按钮 -->
-		<view class="merchant-entrance" v-if="isLoggedIn">
+		<!-- 平台入口：仅平台用户显示平台模式按钮 -->
+		<view class="merchant-entrance" v-if="isLoggedIn && isPlatformUser">
 			<view class="merchant-btn" v-if="isPlatformUser" @tap="switchToMerchantMode">
 				<text class="merchant-text">进入平台模式</text>
-			</view>
-			<view class="merchant-btn shop-mode" v-else @tap="onEnterShopMode">
-				<text class="merchant-text">进入商家模式</text>
 			</view>
 		</view>
 

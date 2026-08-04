@@ -165,13 +165,6 @@
 			</view>
 		</view>
 		
-		<!-- 商家模式入口（is_merchant=1） -->
-		<view class="merchant-entrance" v-if="isShopUser">
-			<view class="merchant-btn shop-mode" @tap="switchToShopMode">
-				<text class="merchant-text">进入商家模式</text>
-			</view>
-		</view>
-
 		<view class="logout-section">
 			<button class="logout-btn" @tap="handleLogout">退出登录</button>
 		</view>

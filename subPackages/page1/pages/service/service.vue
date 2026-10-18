@@ -101,6 +101,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import { quickCheck, SECURITY_SCENE } from '@/utils/security.js'
 
 const inputText = ref('')
 const scrollTop = ref(0)
@@ -176,10 +177,14 @@ const faqList = ref([
 /**
  * 发送消息
  */
-const sendMessage = () => {
+const sendMessage = async () => {
   const content = inputText.value.trim()
   if (!content) return
-  
+
+  // 内容安全检测
+  const ok = await quickCheck(content, { scene: SECURITY_SCENE.SOCIAL })
+  if (!ok) return
+
   // 添加用户消息
   const userMessage = {
     id: Date.now(),

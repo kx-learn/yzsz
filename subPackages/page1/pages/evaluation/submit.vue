@@ -84,6 +84,7 @@
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { submitEvaluation as submitEvaluationApi } from '../../api/evaluation.js'
+import { quickCheck, SECURITY_SCENE } from '@/utils/security.js'
 
 const productInfo = ref({
 	id: '',
@@ -204,6 +205,10 @@ const submitEvaluation = async () => {
 		uni.showToast({ title: '请完善评价信息', icon: 'none' })
 		return
 	}
+
+	// 内容安全检测（评价内容）
+	const checkOk = await quickCheck(content.value, { scene: SECURITY_SCENE.COMMENT })
+	if (!checkOk) return
 
 	submitting.value = true
 

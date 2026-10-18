@@ -195,6 +195,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { logout, updateUserName, updateUserAvatar, updateUserPassword, selfDelete } from '@/api/auth.js'
 import { getUserInfo as getUserInfoApi, getMobileByUserId, getAddressList, refreshUserInfo, updateMobile } from '@/api/user.js'
 import { onUserLogout } from '@/utils/storage.js'
+import { quickCheck, SECURITY_SCENE } from '@/utils/security.js'
 
 const userInfo = ref({
 	id: '',
@@ -392,6 +393,10 @@ const editNickname = () => {
 					return
 				}
 				
+				// 内容安全检测（昵称）
+				const nickOk = await quickCheck(newName, { scene: SECURITY_SCENE.PROFILE })
+				if (!nickOk) return
+
 				// 临时更新显示
 				userInfo.value.name = newName
 				userInfo.value.nickname = newName

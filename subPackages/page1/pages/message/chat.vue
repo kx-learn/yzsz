@@ -167,6 +167,7 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { quickCheck, SECURITY_SCENE } from '@/utils/security.js'
 
 const messageId = ref('')
 const messageTitle = ref('客服')
@@ -245,10 +246,14 @@ const shouldShowTime = (msg, index) => {
   return false
 }
 
-const sendMessage = () => {
+const sendMessage = async () => {
   if (!inputText.value.trim()) {
     return
   }
+
+  // 内容安全检测
+  const ok = await quickCheck(inputText.value, { scene: SECURITY_SCENE.SOCIAL })
+  if (!ok) return
 
   const newMessage = {
     id: messages.value.length + 1,
